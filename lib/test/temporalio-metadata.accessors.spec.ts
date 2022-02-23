@@ -43,6 +43,7 @@ describe('TemporalMetadataAccessor', () => {
         activityMethod() {}
       }
       const activitiesClass = new ActivitiesClass();
+
       expect(
         temporalMetadataAccessor.isActivity(activitiesClass.activityMethod),
       ).toBe(true);

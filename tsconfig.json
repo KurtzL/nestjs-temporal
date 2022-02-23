@@ -15,7 +15,7 @@
     "skipLibCheck": true,
     "baseUrl": "./",
     "paths": {
-      "nest-bull": ["./lib"]
+      "nest-temporal": ["./lib"]
     }
   },
   "include": ["lib/**/*"],

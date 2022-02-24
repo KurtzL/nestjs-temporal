@@ -3,15 +3,11 @@ import { DiscoveryModule } from '@nestjs/core';
 import { TemporalMetadataAccessor } from './temporal-metadata.accessors';
 import { TemporalExplorer } from './temporal.explorer';
 import {
-  ITemporalModule,
   SharedWorkerAsyncConfiguration,
   TemporalModuleOptions,
 } from './interfaces';
 import { WorkerOptions } from '@temporalio/worker';
-import {
-  TEMPORAL_CLIENT_CONFIG,
-  TEMPORAL_WORKER_CONFIG,
-} from './temporal.constants';
+import { TEMPORAL_WORKER_CONFIG } from './temporal.constants';
 import { createClientProviders } from './temporal.providers';
 
 @Module({})
@@ -44,12 +40,13 @@ export class TemporalModule {
     throw new Error('Method not implemented.');
   }
 
-  static registerClient(options: TemporalModuleOptions): DynamicModule {
+  static registerClient(options?: TemporalModuleOptions): DynamicModule {
     const createClientProvider = createClientProviders([].concat(options));
     return {
       global: true,
       module: TemporalModule,
       providers: [...createClientProvider],
+      imports: [TemporalModule.registerCore()],
       exports: createClientProvider,
     };
   }

@@ -7,7 +7,7 @@ import { DiscoveryService, MetadataScanner, ModuleRef } from '@nestjs/core';
 import { Injector } from '@nestjs/core/injector/injector';
 import { InstanceWrapper } from '@nestjs/core/injector/instance-wrapper';
 import { TemporalMetadataAccessor } from './temporal-metadata.accessors';
-import { Worker } from '@temporalio/worker';
+import { Worker, WorkerOptions } from '@temporalio/worker';
 import { ActivityInterface } from '@temporalio/activity';
 import { TEMPORAL_WORKER_CONFIG } from './temporal.constants';
 
@@ -27,29 +27,34 @@ export class TemporalExplorer implements OnModuleInit {
   }
 
   async explore() {
-    const workerConfig = this.moduleRef.get(TEMPORAL_WORKER_CONFIG, {
+    const workerConfig: WorkerOptions = this.getWorkerConfigOptions();
+
+    // should contain taskQueue
+    if (workerConfig.taskQueue) {
+      const activitiesFunc: ActivityInterface = await this.handleActivities();
+
+      const worker = await Worker.create(
+        Object.assign(
+          {
+            activities: activitiesFunc,
+          },
+          workerConfig,
+        ),
+      );
+
+      (worker as any as OnApplicationShutdown).onApplicationShutdown =
+        function (this: Worker) {
+          return this.shutdown();
+        };
+
+      await worker.run();
+    }
+  }
+
+  getWorkerConfigOptions(name?: string): WorkerOptions {
+    return this.moduleRef.get(TEMPORAL_WORKER_CONFIG || name, {
       strict: false,
     });
-
-    const activitiesFunc: ActivityInterface = await this.handleActivities();
-
-    const worker = await Worker.create(
-      Object.assign(
-        {
-          taskQueue: 'default',
-          activities: activitiesFunc,
-        },
-        workerConfig,
-      ),
-    );
-
-    (worker as any as OnApplicationShutdown).onApplicationShutdown = function (
-      this: Worker,
-    ) {
-      return this.shutdown();
-    };
-
-    await worker.run();
   }
 
   /**
@@ -98,53 +103,5 @@ export class TemporalExplorer implements OnModuleInit {
     });
 
     return activitiesMethod;
-  }
-
-  /**
-   *
-   * @returns
-   */
-  async handleWorkflow(): Promise<any> {
-    const workflowMethod = {};
-
-    const workflows: InstanceWrapper[] = this.discoveryService
-      .getProviders()
-      .filter((wrapper: InstanceWrapper) =>
-        this.metadataAccessor.isWorkflows(
-          !wrapper.metatype || wrapper.inject
-            ? wrapper.instance?.constructor
-            : wrapper.metatype,
-        ),
-      );
-
-    workflows.forEach((wrapper: InstanceWrapper) => {
-      const { instance, metatype } = wrapper;
-      const isRequestScoped = !wrapper.isDependencyTreeStatic();
-
-      //
-      const activitiesOptions = this.metadataAccessor.getWorkflows(
-        instance.constructor || metatype,
-      );
-
-      this.metadataScanner.scanFromPrototype(
-        instance,
-        Object.getPrototypeOf(instance),
-        async (key: string) => {
-          if (this.metadataAccessor.isWorkflowMethod(instance[key])) {
-            const metadata = this.metadataAccessor.getWorkflowMethod(
-              instance[key],
-            );
-
-            if (isRequestScoped) {
-              // TODO: handle request scoped
-            } else {
-              workflowMethod[key] = instance[key].bind(instance);
-            }
-          }
-        },
-      );
-    });
-
-    return workflowMethod;
   }
 }

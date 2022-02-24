@@ -1,7 +1,7 @@
 import { OnApplicationShutdown, Provider } from '@nestjs/common';
 import { TemporalModuleOptions } from './interfaces';
-import { TEMPORAL_CLIENT_CONFIG } from './temporal.constants';
 import { Connection, WorkflowClient } from '@temporalio/client';
+import { getQueueToken } from './utils';
 
 export function buildClient(option: TemporalModuleOptions): WorkflowClient {
   const connection = new Connection(option.connection || {});
@@ -23,11 +23,9 @@ export function createClientProviders(
   options: TemporalModuleOptions[],
 ): Provider[] {
   return options.map((option) => ({
-    provide: TEMPORAL_CLIENT_CONFIG,
-    useFactory: (o: TemporalModuleOptions) => {
-      const name = o.name || option.name;
-      return buildClient({ ...o, name });
+    provide: getQueueToken(option && option.name ? option.name : undefined),
+    useFactory: () => {
+      return buildClient(option || {});
     },
-    inject: [TEMPORAL_CLIENT_CONFIG],
   }));
 }

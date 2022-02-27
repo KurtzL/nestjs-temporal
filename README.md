@@ -51,7 +51,7 @@ import { ActivityInterface } from '@temporalio/activity';
 @Injectable()
 @Activities()
 export class GreetingActivity {
-  constructor(private readonly httpService: HttpService) {}
+  constructor() {}
 
   @Activity()
   async greeting(name: string): Promise<string> {

@@ -43,6 +43,7 @@
     "eslint": "^8.9.0",
     "eslint-config-prettier": "^8.4.0",
     "eslint-plugin-import": "^2.25.4",
+    "husky": "^7.0.4",
     "jest": "^27.5.1",
     "prettier": "^2.5.1",
     "reflect-metadata": "^0.1.13",
@@ -60,5 +61,8 @@
     "@nestjs/common": "^6.10.11 || ^7.0.0 || ^8.0.0",
     "@nestjs/core": "^6.10.11 || ^7.0.0 || ^8.0.0",
     "temporalio": "^0.18.0"
+  },
+  "dependencies": {
+    "release-it": "^14.12.5"
   }
 }

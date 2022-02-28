@@ -29,6 +29,8 @@
     ]
   },
   "devDependencies": {
+    "@commitlint/cli": "^16.2.1",
+    "@commitlint/config-conventional": "^16.2.1",
     "@nestjs/common": "^8.3.1",
     "@nestjs/core": "^8.3.1",
     "@nestjs/platform-express": "^8.3.1",
@@ -55,8 +57,8 @@
     "typescript": "^4.5.5"
   },
   "peerDependencies": {
-    "temporalio": "^0.18.0",
     "@nestjs/common": "^6.10.11 || ^7.0.0 || ^8.0.0",
-    "@nestjs/core": "^6.10.11 || ^7.0.0 || ^8.0.0"
+    "@nestjs/core": "^6.10.11 || ^7.0.0 || ^8.0.0",
+    "temporalio": "^0.18.0"
   }
 }

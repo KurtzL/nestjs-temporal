@@ -36,9 +36,69 @@ import { TemporalModule } from 'nestjs-temporal';
       taskQueue: 'default',
       workflowsPath: require.resolve('./temporal/workflow'),
     }),
+    
+    TemporalModule.registerClient(),
   ],
 })
 export class AppModule {}
+```
+
+```ts
+import { Injectable } from '@nestjs/common';
+import { Activities, Activity } from 'nestjs-temporal';
+import { ActivityInterface } from '@temporalio/activity';
+
+@Injectable()
+@Activities()
+export class GreetingActivity {
+  constructor() {}
+
+  @Activity()
+  async greeting(name: string): Promise<string> {
+    return 'Hello ' + name;
+  }
+}
+
+export interface IGreetingActivity extends ActivityInterface {
+  greeting(name: string): Promise<string>;
+}
+```
+
+```ts
+import { proxyActivities } from '@temporalio/workflow';
+// Only import the activity types
+import { IGreetingActivity } from '../activities';
+
+const { greeting, reverseGreeting } = proxyActivities<IGreetingActivity>({
+  startToCloseTimeout: '1 minute',
+});
+
+export async function example(name: string): Promise<string> {
+  return await greeting(name);
+}
+```
+
+```ts
+import { Controller, Post } from '@nestjs/common';
+import { Connection, WorkflowClient } from '@temporalio/client';
+import { InjectTemporalClient } from 'nestjs-temporal';
+
+@Controller()
+export class AppController {
+  constructor(
+    @InjectTemporalClient() private readonly temporalClient: WorkflowClient,
+  ) {}
+
+  @Post()
+  async greeting() {
+    const handle = await this.temporalClient.start('example', {
+      args: ['Temporal'],
+      taskQueue: 'default',
+      workflowId: 'wf-id-' + Math.floor(Math.random() * 1000),
+    });
+    console.log(`Started workflow ${handle.workflowId}`);
+  }
+}
 ```
 
 ## People

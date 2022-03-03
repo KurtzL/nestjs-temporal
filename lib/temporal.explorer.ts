@@ -1,5 +1,6 @@
 import {
   Injectable,
+  OnApplicationBootstrap,
   OnApplicationShutdown,
   OnModuleDestroy,
   OnModuleInit,
@@ -13,7 +14,9 @@ import { ActivityInterface } from '@temporalio/activity';
 import { TEMPORAL_WORKER_CONFIG } from './temporal.constants';
 
 @Injectable()
-export class TemporalExplorer implements OnModuleInit, OnModuleDestroy {
+export class TemporalExplorer
+  implements OnModuleInit, OnModuleDestroy, OnApplicationBootstrap
+{
   private readonly injector = new Injector();
   private worker: Worker;
 
@@ -32,6 +35,12 @@ export class TemporalExplorer implements OnModuleInit, OnModuleDestroy {
     this.worker.shutdown();
   }
 
+  onApplicationBootstrap() {
+    setTimeout(() => {
+      this.worker.run();
+    }, 5000);
+  }
+
   async explore() {
     const workerConfig: WorkerOptions = this.getWorkerConfigOptions();
 
@@ -47,8 +56,6 @@ export class TemporalExplorer implements OnModuleInit, OnModuleDestroy {
           workerConfig,
         ),
       );
-
-      await this.worker.run();
     }
   }
 

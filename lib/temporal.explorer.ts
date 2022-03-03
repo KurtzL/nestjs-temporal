@@ -1,6 +1,8 @@
 import {
   Injectable,
+  OnApplicationBootstrap,
   OnApplicationShutdown,
+  OnModuleDestroy,
   OnModuleInit,
 } from '@nestjs/common';
 import { DiscoveryService, MetadataScanner, ModuleRef } from '@nestjs/core';
@@ -12,8 +14,11 @@ import { ActivityInterface } from '@temporalio/activity';
 import { TEMPORAL_WORKER_CONFIG } from './temporal.constants';
 
 @Injectable()
-export class TemporalExplorer implements OnModuleInit {
+export class TemporalExplorer
+  implements OnModuleInit, OnModuleDestroy, OnApplicationBootstrap
+{
   private readonly injector = new Injector();
+  private worker: Worker;
 
   constructor(
     private readonly moduleRef: ModuleRef,
@@ -26,6 +31,16 @@ export class TemporalExplorer implements OnModuleInit {
     await this.explore();
   }
 
+  onModuleDestroy() {
+    this.worker.shutdown();
+  }
+
+  onApplicationBootstrap() {
+    setTimeout(() => {
+      this.worker.run();
+    }, 5000);
+  }
+
   async explore() {
     const workerConfig: WorkerOptions = this.getWorkerConfigOptions();
 
@@ -33,7 +48,7 @@ export class TemporalExplorer implements OnModuleInit {
     if (workerConfig.taskQueue) {
       const activitiesFunc: ActivityInterface = await this.handleActivities();
 
-      const worker = await Worker.create(
+      this.worker = await Worker.create(
         Object.assign(
           {
             activities: activitiesFunc,
@@ -41,13 +56,6 @@ export class TemporalExplorer implements OnModuleInit {
           workerConfig,
         ),
       );
-
-      (worker as any as OnApplicationShutdown).onApplicationShutdown =
-        function (this: Worker) {
-          return this.shutdown();
-        };
-
-      await worker.run();
     }
   }
 

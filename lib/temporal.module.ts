@@ -45,8 +45,7 @@ export class TemporalModule {
     return {
       global: true,
       module: TemporalModule,
-      providers: [...createClientProvider],
-      imports: [TemporalModule.registerCore()],
+      providers: createClientProvider,
       exports: createClientProvider,
     };
   }

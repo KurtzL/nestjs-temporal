@@ -27,17 +27,28 @@ export class TemporalModule {
 
   static forRootAsync(
     asyncWorkerConfig: SharedWorkerAsyncConfiguration,
-  ): DynamicModule;
-  static forRootAsync(
-    configKey: string,
-    asyncWorkerConfig: SharedWorkerAsyncConfiguration,
-  ): DynamicModule;
-  static forRootAsync(
-    configKey: string | SharedWorkerAsyncConfiguration,
-    asyncWorkerConfig?: SharedWorkerAsyncConfiguration,
-  ): DynamicModule;
-  static forRootAsync(configKey: any, asyncWorkerConfig?: any): DynamicModule {
-    throw new Error('Method not implemented.');
+  ): DynamicModule {
+    const providers: Provider[] = [this.createAsyncProvider(asyncWorkerConfig)];
+
+    return {
+      global: true,
+      module: TemporalModule,
+      providers: providers,
+      imports: [TemporalModule.registerCore()],
+      exports: providers,
+    };
+  }
+
+  private static createAsyncProvider(
+    options: SharedWorkerAsyncConfiguration,
+  ): Provider {
+    if (options.useFactory) {
+      return {
+        provide: TEMPORAL_WORKER_CONFIG,
+        useFactory: options.useFactory,
+        inject: options.inject || [],
+      };
+    }
   }
 
   static registerClient(options?: TemporalModuleOptions): DynamicModule {

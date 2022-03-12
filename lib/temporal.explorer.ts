@@ -1,7 +1,6 @@
 import {
   Injectable,
   OnApplicationBootstrap,
-  OnApplicationShutdown,
   OnModuleDestroy,
   OnModuleInit,
 } from '@nestjs/common';
@@ -9,9 +8,12 @@ import { DiscoveryService, MetadataScanner, ModuleRef } from '@nestjs/core';
 import { Injector } from '@nestjs/core/injector/injector';
 import { InstanceWrapper } from '@nestjs/core/injector/instance-wrapper';
 import { TemporalMetadataAccessor } from './temporal-metadata.accessors';
-import { Worker, WorkerOptions } from '@temporalio/worker';
+import { Worker, WorkerOptions, Core, CoreOptions } from '@temporalio/worker';
 import { ActivityInterface } from '@temporalio/activity';
-import { TEMPORAL_WORKER_CONFIG } from './temporal.constants';
+import {
+  TEMPORAL_CORE_CONFIG,
+  TEMPORAL_WORKER_CONFIG,
+} from './temporal.constants';
 
 @Injectable()
 export class TemporalExplorer
@@ -38,15 +40,18 @@ export class TemporalExplorer
   onApplicationBootstrap() {
     setTimeout(() => {
       this.worker.run();
-    }, 5000);
+    }, 1000);
   }
 
   async explore() {
     const workerConfig: WorkerOptions = this.getWorkerConfigOptions();
+    const coreConfig: CoreOptions = this.getCoreConfigOptions();
 
     // should contain taskQueue
     if (workerConfig.taskQueue) {
       const activitiesFunc: ActivityInterface = await this.handleActivities();
+
+      await Core.install(coreConfig);
 
       this.worker = await Worker.create(
         Object.assign(
@@ -63,6 +68,10 @@ export class TemporalExplorer
     return this.moduleRef.get(TEMPORAL_WORKER_CONFIG || name, {
       strict: false,
     });
+  }
+
+  getCoreConfigOptions(name?: string): CoreOptions {
+    return this.moduleRef.get(TEMPORAL_CORE_CONFIG || name, { strict: false });
   }
 
   /**

@@ -6,21 +6,33 @@ import {
   SharedWorkerAsyncConfiguration,
   TemporalModuleOptions,
 } from './interfaces';
-import { WorkerOptions } from '@temporalio/worker';
-import { TEMPORAL_WORKER_CONFIG } from './temporal.constants';
+import { WorkerOptions, CoreOptions } from '@temporalio/worker';
+import {
+  TEMPORAL_CORE_CONFIG,
+  TEMPORAL_WORKER_CONFIG,
+} from './temporal.constants';
 import { createClientProviders } from './temporal.providers';
 
 @Module({})
 export class TemporalModule {
-  static forRoot(workerConfig: WorkerOptions): DynamicModule {
+  static forRoot(
+    workerConfig: WorkerOptions,
+    coreConfig?: CoreOptions,
+  ): DynamicModule {
     const workerConfigProvider: Provider = {
       provide: TEMPORAL_WORKER_CONFIG,
       useValue: workerConfig,
     };
+
+    const coreConfigProvider: Provider = {
+      provide: TEMPORAL_CORE_CONFIG,
+      useValue: coreConfig || {},
+    };
+
     return {
       global: true,
       module: TemporalModule,
-      providers: [workerConfigProvider],
+      providers: [workerConfigProvider, coreConfigProvider],
       imports: [TemporalModule.registerCore()],
     };
   }

@@ -39,13 +39,19 @@ export class TemporalModule {
 
   static forRootAsync(
     asyncWorkerConfig: SharedWorkerAsyncConfiguration,
+    asyncCoreConfig?: CoreOptions,
   ): DynamicModule {
     const providers: Provider[] = [this.createAsyncProvider(asyncWorkerConfig)];
+
+    const coreConfigProvider: Provider = {
+      provide: TEMPORAL_CORE_CONFIG,
+      useValue: asyncCoreConfig || {},
+    };
 
     return {
       global: true,
       module: TemporalModule,
-      providers: providers,
+      providers: [...providers, coreConfigProvider],
       imports: [TemporalModule.registerCore()],
       exports: providers,
     };

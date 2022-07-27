@@ -6,9 +6,9 @@ import {
   SharedWorkerAsyncConfiguration,
   TemporalModuleOptions,
 } from './interfaces';
-import { WorkerOptions, CoreOptions } from '@temporalio/worker';
+import { WorkerOptions, NativeConnectionOptions } from '@temporalio/worker';
 import {
-  TEMPORAL_CORE_CONFIG,
+  TEMPORAL_NATIVE_CONNECTION_CONFIG,
   TEMPORAL_WORKER_CONFIG,
 } from './temporal.constants';
 import { createClientProviders } from './temporal.providers';
@@ -17,42 +17,42 @@ import { createClientProviders } from './temporal.providers';
 export class TemporalModule {
   static forRoot(
     workerConfig: WorkerOptions,
-    coreConfig?: CoreOptions,
+    nativeConnectionConfig?: NativeConnectionOptions,
   ): DynamicModule {
     const workerConfigProvider: Provider = {
       provide: TEMPORAL_WORKER_CONFIG,
       useValue: workerConfig,
     };
 
-    const coreConfigProvider: Provider = {
-      provide: TEMPORAL_CORE_CONFIG,
-      useValue: coreConfig || {},
+    const nativeConnectionConfigProvider: Provider = {
+      provide: TEMPORAL_NATIVE_CONNECTION_CONFIG,
+      useValue: nativeConnectionConfig || {},
     };
 
     return {
       global: true,
       module: TemporalModule,
-      providers: [workerConfigProvider, coreConfigProvider],
-      imports: [TemporalModule.registerCore()],
+      providers: [workerConfigProvider, nativeConnectionConfigProvider],
+      imports: [TemporalModule.registerWorker()],
     };
   }
 
   static forRootAsync(
     asyncWorkerConfig: SharedWorkerAsyncConfiguration,
-    asyncCoreConfig?: CoreOptions,
+    asyncNativeConnectionConfig?: NativeConnectionOptions,
   ): DynamicModule {
     const providers: Provider[] = [this.createAsyncProvider(asyncWorkerConfig)];
 
-    const coreConfigProvider: Provider = {
-      provide: TEMPORAL_CORE_CONFIG,
-      useValue: asyncCoreConfig || {},
+    const nativeConnectionConfigProvider: Provider = {
+      provide: TEMPORAL_NATIVE_CONNECTION_CONFIG,
+      useValue: asyncNativeConnectionConfig || {},
     };
 
     return {
       global: true,
       module: TemporalModule,
-      providers: [...providers, coreConfigProvider],
-      imports: [TemporalModule.registerCore()],
+      providers: [...providers, nativeConnectionConfigProvider],
+      imports: [TemporalModule.registerWorker()],
       exports: providers,
     };
   }
@@ -82,7 +82,7 @@ export class TemporalModule {
     throw new Error('Method not implemented.');
   }
 
-  private static registerCore() {
+  private static registerWorker() {
     return {
       global: true,
       module: TemporalModule,

@@ -8,10 +8,10 @@ import { DiscoveryService, MetadataScanner, ModuleRef } from '@nestjs/core';
 import { Injector } from '@nestjs/core/injector/injector';
 import { InstanceWrapper } from '@nestjs/core/injector/instance-wrapper';
 import { TemporalMetadataAccessor } from './temporal-metadata.accessors';
-import { Worker, WorkerOptions, Core, CoreOptions } from '@temporalio/worker';
-import { ActivityInterface } from '@temporalio/activity';
+import { Worker, WorkerOptions, NativeConnection, NativeConnectionOptions } from '@temporalio/worker';
+import { UntypedActivities } from '@temporalio/activity';
 import {
-  TEMPORAL_CORE_CONFIG,
+  TEMPORAL_NATIVE_CONNECTION_CONFIG,
   TEMPORAL_WORKER_CONFIG,
 } from './temporal.constants';
 
@@ -45,18 +45,18 @@ export class TemporalExplorer
 
   async explore() {
     const workerConfig: WorkerOptions = this.getWorkerConfigOptions();
-    const coreConfig: CoreOptions = this.getCoreConfigOptions();
+    const nativeConnectionConfig: NativeConnectionOptions = this.getNativeConnectionConfigOptions();
 
     // should contain taskQueue
     if (workerConfig.taskQueue) {
-      const activitiesFunc: ActivityInterface = await this.handleActivities();
+      const activitiesFunc = await this.handleActivities();
 
-      await Core.install(coreConfig);
-
+      const connection = await NativeConnection.connect(nativeConnectionConfig);
       this.worker = await Worker.create(
         Object.assign(
           {
             activities: activitiesFunc,
+            connection,
           },
           workerConfig,
         ),
@@ -70,16 +70,16 @@ export class TemporalExplorer
     });
   }
 
-  getCoreConfigOptions(name?: string): CoreOptions {
-    return this.moduleRef.get(TEMPORAL_CORE_CONFIG || name, { strict: false });
+  getNativeConnectionConfigOptions(name?: string): NativeConnectionOptions {
+    return this.moduleRef.get(TEMPORAL_NATIVE_CONNECTION_CONFIG || name, { strict: false });
   }
 
   /**
    *
    * @returns
    */
-  async handleActivities(): Promise<ActivityInterface> {
-    const activitiesMethod: ActivityInterface = {};
+  async handleActivities(): Promise<UntypedActivities> {
+    const activitiesMethod: UntypedActivities = {};
 
     const activities: InstanceWrapper[] = this.discoveryService
       .getProviders()

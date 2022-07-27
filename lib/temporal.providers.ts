@@ -10,10 +10,10 @@ export function buildClient(option: TemporalModuleOptions): WorkflowClient {
     ...option.workflowOptions,
   });
 
-  (connection as any as OnApplicationShutdown).onApplicationShutdown = function (
+  (connection as any as OnApplicationShutdown).onApplicationShutdown = async function (
     this: Connection,
   ) {
-    return this.client.close();
+    return await this.close();
   };
 
   return client;

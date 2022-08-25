@@ -4,16 +4,16 @@ import { Connection, WorkflowClient } from '@temporalio/client';
 import { getQueueToken } from './utils';
 
 export function buildClient(option: TemporalModuleOptions): WorkflowClient {
-  const connection = new Connection(option.connection || {});
-  const client = new WorkflowClient(
-    connection.service,
-    option.workflowOptions || {},
-  );
+  const connection = Connection.lazy(option.connection);
+  const client = new WorkflowClient({
+    ...option.workflowOptions,
+    connection,
+  });
 
-  (connection as any as OnApplicationShutdown).onApplicationShutdown = function (
+  (connection as any as OnApplicationShutdown).onApplicationShutdown = async function (
     this: Connection,
   ) {
-    return this.client.close();
+    return await this.close();
   };
 
   return client;

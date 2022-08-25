@@ -15,6 +15,5 @@ export function Activity(
     nameOrOptions && typeof nameOrOptions === 'object'
       ? nameOrOptions
       : { name: nameOrOptions };
-
   return SetMetadata(TEMPORAL_MODULE_ACTIVITY, options || {});
 }

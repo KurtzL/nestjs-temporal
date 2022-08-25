@@ -1,6 +1,5 @@
 import {
   Injectable,
-  OnApplicationBootstrap,
   OnModuleDestroy,
   OnModuleInit,
 } from '@nestjs/common';
@@ -8,19 +7,21 @@ import { DiscoveryService, MetadataScanner, ModuleRef } from '@nestjs/core';
 import { Injector } from '@nestjs/core/injector/injector';
 import { InstanceWrapper } from '@nestjs/core/injector/instance-wrapper';
 import { TemporalMetadataAccessor } from './temporal-metadata.accessors';
-import { Worker, WorkerOptions, Core, CoreOptions } from '@temporalio/worker';
-import { ActivityInterface } from '@temporalio/activity';
+import { Worker, WorkerOptions, NativeConnection, NativeConnectionOptions, Runtime } from '@temporalio/worker';
+import { UntypedActivities } from '@temporalio/activity';
 import {
-  TEMPORAL_CORE_CONFIG,
+  TEMPORAL_NATIVE_CONNECTION_CONFIG,
   TEMPORAL_WORKER_CONFIG,
 } from './temporal.constants';
 
 @Injectable()
 export class TemporalExplorer
-  implements OnModuleInit, OnModuleDestroy, OnApplicationBootstrap
+  implements OnModuleInit, OnModuleDestroy
 {
   private readonly injector = new Injector();
   private worker: Worker;
+  private connection: NativeConnection | undefined;
+  private workerPromise: Promise<void>;
 
   constructor(
     private readonly moduleRef: ModuleRef,
@@ -33,34 +34,44 @@ export class TemporalExplorer
     await this.explore();
   }
 
-  onModuleDestroy() {
-    this.worker.shutdown();
+  async onModuleDestroy() {
+    await this.workerPromise;
+    await this.connection?.close();
   }
 
-  onApplicationBootstrap() {
-    setTimeout(() => {
-      this.worker.run();
-    }, 1000);
+  async runWorker() {
+    this.workerPromise = this.worker.run();
+    await this.workerPromise;
   }
 
   async explore() {
     const workerConfig: WorkerOptions = this.getWorkerConfigOptions();
-    const coreConfig: CoreOptions = this.getCoreConfigOptions();
+
+    Runtime.install({
+      // TODO: Logging
+      telemetryOptions: {
+        // logging: {
+        //   forward: { level: 'INFO' },
+        // },
+        ...(process.env.DD_AGENT_HOST
+          ? { metrics: { otel: { url: `http://${process.env.DD_AGENT_HOST}:4317` } } }
+          : {}),
+      },
+    });;
+    const nativeConnectionConfig: NativeConnectionOptions = this.getNativeConnectionConfigOptions();
 
     // should contain taskQueue
     if (workerConfig.taskQueue) {
-      const activitiesFunc: ActivityInterface = await this.handleActivities();
-
-      await Core.install(coreConfig);
-
-      this.worker = await Worker.create(
-        Object.assign(
-          {
-            activities: activitiesFunc,
-          },
-          workerConfig,
-        ),
+      const activitiesFunc = await this.handleActivities();
+      this.connection = await NativeConnection.connect(nativeConnectionConfig);
+      const newWorkerConfig = Object.assign(
+        {
+          activities: activitiesFunc,
+          connection: this.connection,
+        },
+        workerConfig,
       );
+      this.worker = await Worker.create(newWorkerConfig);
     }
   }
 
@@ -70,16 +81,16 @@ export class TemporalExplorer
     });
   }
 
-  getCoreConfigOptions(name?: string): CoreOptions {
-    return this.moduleRef.get(TEMPORAL_CORE_CONFIG || name, { strict: false });
+  getNativeConnectionConfigOptions(name?: string): NativeConnectionOptions {
+    return this.moduleRef.get(TEMPORAL_NATIVE_CONNECTION_CONFIG || name, { strict: false });
   }
 
   /**
    *
    * @returns
    */
-  async handleActivities(): Promise<ActivityInterface> {
-    const activitiesMethod: ActivityInterface = {};
+  async handleActivities(): Promise<UntypedActivities> {
+    const activitiesMethod: UntypedActivities = {};
 
     const activities: InstanceWrapper[] = this.discoveryService
       .getProviders()

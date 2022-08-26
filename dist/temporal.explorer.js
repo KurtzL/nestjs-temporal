@@ -32,6 +32,8 @@ let TemporalExplorer = class TemporalExplorer {
         this.metadataAccessor = metadataAccessor;
         this.metadataScanner = metadataScanner;
         this.injector = new injector_1.Injector();
+        this.workerPromises = [];
+        this.workers = [];
     }
     onModuleInit() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -39,37 +41,33 @@ let TemporalExplorer = class TemporalExplorer {
         });
     }
     onModuleDestroy() {
-        var _a;
         return __awaiter(this, void 0, void 0, function* () {
-            yield this.workerPromise;
-            yield ((_a = this.connection) === null || _a === void 0 ? void 0 : _a.close());
+            this.workers.map(worker => worker.shutdown());
+            yield Promise.all(this.workerPromises);
+            yield this.connection.close();
         });
     }
-    runWorker() {
+    runWorker(workerOptions) {
         return __awaiter(this, void 0, void 0, function* () {
-            this.workerPromise = this.worker.run();
-            yield this.workerPromise;
+            const newWorkerConfig = Object.assign(Object.assign(Object.assign({}, this.getWorkerConfigOptions()), { activities: this.activities, connection: this.connection }), workerOptions);
+            const worker = yield worker_1.Worker.create(newWorkerConfig);
+            const workerPromise = worker.run();
+            const workerObject = { worker, workerPromise };
+            this.workers.push(worker);
+            this.workerPromises.push(workerPromise);
+            return workerObject;
         });
     }
     explore() {
         return __awaiter(this, void 0, void 0, function* () {
-            const workerConfig = this.getWorkerConfigOptions();
             worker_1.Runtime.install({
                 telemetryOptions: Object.assign({}, (process.env.DD_AGENT_HOST
                     ? { metrics: { otel: { url: `http://${process.env.DD_AGENT_HOST}:4317` } } }
                     : {})),
             });
-            ;
             const nativeConnectionConfig = this.getNativeConnectionConfigOptions();
-            if (workerConfig.taskQueue) {
-                const activitiesFunc = yield this.handleActivities();
-                this.connection = yield worker_1.NativeConnection.connect(nativeConnectionConfig);
-                const newWorkerConfig = Object.assign({
-                    activities: activitiesFunc,
-                    connection: this.connection,
-                }, workerConfig);
-                this.worker = yield worker_1.Worker.create(newWorkerConfig);
-            }
+            this.connection = yield worker_1.NativeConnection.connect(nativeConnectionConfig);
+            this.activities = yield this.handleActivities();
         });
     }
     getWorkerConfigOptions(name) {

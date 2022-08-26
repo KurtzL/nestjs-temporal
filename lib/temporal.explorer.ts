@@ -19,9 +19,10 @@ export class TemporalExplorer
   implements OnModuleInit, OnModuleDestroy
 {
   private readonly injector = new Injector();
-  private worker: Worker;
   private connection: NativeConnection | undefined;
-  private workerPromise: Promise<void>;
+  private workerPromises: Promise<void>[] = [];
+  private workers: Worker[] = [];
+  private activities: UntypedActivities;
 
   constructor(
     private readonly moduleRef: ModuleRef,
@@ -35,18 +36,27 @@ export class TemporalExplorer
   }
 
   async onModuleDestroy() {
-    await this.workerPromise;
-    await this.connection?.close();
+    this.workers.map( worker => worker.shutdown());
+    await Promise.all(this.workerPromises);
+    await this.connection.close();
   }
 
-  async runWorker() {
-    this.workerPromise = this.worker.run();
-    await this.workerPromise;
+  async runWorker(workerOptions?: Partial<WorkerOptions>): Promise<{worker: Worker, workerPromise: Promise<void>}> {
+    const newWorkerConfig: WorkerOptions = {
+      ...this.getWorkerConfigOptions(),
+      activities: this.activities,
+      connection: this.connection,
+      ...workerOptions,
+    }
+    const worker = await Worker.create(newWorkerConfig);
+    const workerPromise = worker.run();
+    const workerObject = { worker, workerPromise };
+    this.workers.push(worker);
+    this.workerPromises.push(workerPromise);
+    return workerObject;
   }
 
   async explore() {
-    const workerConfig: WorkerOptions = this.getWorkerConfigOptions();
-
     Runtime.install({
       // TODO: Logging
       telemetryOptions: {
@@ -57,22 +67,10 @@ export class TemporalExplorer
           ? { metrics: { otel: { url: `http://${process.env.DD_AGENT_HOST}:4317` } } }
           : {}),
       },
-    });;
+    });
     const nativeConnectionConfig: NativeConnectionOptions = this.getNativeConnectionConfigOptions();
-
-    // should contain taskQueue
-    if (workerConfig.taskQueue) {
-      const activitiesFunc = await this.handleActivities();
-      this.connection = await NativeConnection.connect(nativeConnectionConfig);
-      const newWorkerConfig = Object.assign(
-        {
-          activities: activitiesFunc,
-          connection: this.connection,
-        },
-        workerConfig,
-      );
-      this.worker = await Worker.create(newWorkerConfig);
-    }
+    this.connection = await NativeConnection.connect(nativeConnectionConfig);
+    this.activities = await this.handleActivities();
   }
 
   getWorkerConfigOptions(name?: string): WorkerOptions {

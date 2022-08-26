@@ -44,7 +44,12 @@ let TemporalExplorer = class TemporalExplorer {
         return __awaiter(this, void 0, void 0, function* () {
             this.workers.map(worker => worker.shutdown());
             yield Promise.all(this.workerPromises);
-            yield this.connection.close();
+            try {
+                yield this.connection.close();
+            }
+            catch (e) {
+                console.error('Connection already closed');
+            }
         });
     }
     runWorker(workerOptions) {

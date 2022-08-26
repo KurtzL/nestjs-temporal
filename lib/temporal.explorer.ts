@@ -38,7 +38,11 @@ export class TemporalExplorer
   async onModuleDestroy() {
     this.workers.map( worker => worker.shutdown());
     await Promise.all(this.workerPromises);
-    await this.connection.close();
+    try {
+      await this.connection.close();
+    } catch (e) {
+      console.error('Connection already closed');
+    }
   }
 
   async runWorker(workerOptions?: Partial<WorkerOptions>): Promise<{worker: Worker, workerPromise: Promise<void>}> {

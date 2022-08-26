@@ -42,13 +42,13 @@ let TemporalExplorer = class TemporalExplorer {
     }
     onModuleDestroy() {
         return __awaiter(this, void 0, void 0, function* () {
-            this.workers.map(worker => worker.shutdown());
-            yield Promise.all(this.workerPromises);
             try {
+                this.workers.map(worker => worker.shutdown());
+                yield Promise.all(this.workerPromises);
                 yield this.connection.close();
             }
             catch (e) {
-                console.error('Connection already closed');
+                console.error('Workers or connection already closed');
             }
         });
     }

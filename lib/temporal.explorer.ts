@@ -36,12 +36,12 @@ export class TemporalExplorer
   }
 
   async onModuleDestroy() {
-    this.workers.map( worker => worker.shutdown());
-    await Promise.all(this.workerPromises);
     try {
+      this.workers.map( worker => worker.shutdown());
+      await Promise.all(this.workerPromises);
       await this.connection.close();
     } catch (e) {
-      console.error('Connection already closed');
+      console.error('Workers or connection already closed');
     }
   }
 

@@ -8,8 +8,12 @@ import { DiscoveryService, MetadataScanner, ModuleRef } from '@nestjs/core';
 import { Injector } from '@nestjs/core/injector/injector';
 import { InstanceWrapper } from '@nestjs/core/injector/instance-wrapper';
 import { TemporalMetadataAccessor } from './temporal-metadata.accessors';
-import { Worker, WorkerOptions, Core, CoreOptions } from '@temporalio/worker';
-import { ActivityInterface } from '@temporalio/activity';
+import {
+  Runtime,
+  RuntimeOptions,
+  Worker,
+  WorkerOptions,
+} from '@temporalio/worker';
 import {
   TEMPORAL_CORE_CONFIG,
   TEMPORAL_WORKER_CONFIG,
@@ -45,13 +49,13 @@ export class TemporalExplorer
 
   async explore() {
     const workerConfig: WorkerOptions = this.getWorkerConfigOptions();
-    const coreConfig: CoreOptions = this.getCoreConfigOptions();
+    const runTimeOptions: RuntimeOptions = this.getRuntimeOptions();
 
     // should contain taskQueue
     if (workerConfig.taskQueue) {
-      const activitiesFunc: ActivityInterface = await this.handleActivities();
+      const activitiesFunc = await this.handleActivities();
 
-      await Core.install(coreConfig);
+      Runtime.install(runTimeOptions);
 
       this.worker = await Worker.create(
         Object.assign(
@@ -70,7 +74,7 @@ export class TemporalExplorer
     });
   }
 
-  getCoreConfigOptions(name?: string): CoreOptions {
+  getRuntimeOptions(name?: string): RuntimeOptions {
     return this.moduleRef.get(TEMPORAL_CORE_CONFIG || name, { strict: false });
   }
 
@@ -78,8 +82,8 @@ export class TemporalExplorer
    *
    * @returns
    */
-  async handleActivities(): Promise<ActivityInterface> {
-    const activitiesMethod: ActivityInterface = {};
+  async handleActivities() {
+    const activitiesMethod = {};
 
     const activities: InstanceWrapper[] = this.discoveryService
       .getProviders()

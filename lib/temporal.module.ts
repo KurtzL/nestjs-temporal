@@ -6,7 +6,7 @@ import {
   SharedWorkerAsyncConfiguration,
   TemporalModuleOptions,
 } from './interfaces';
-import { WorkerOptions, CoreOptions } from '@temporalio/worker';
+import { WorkerOptions, RuntimeOptions } from '@temporalio/worker';
 import {
   TEMPORAL_CORE_CONFIG,
   TEMPORAL_WORKER_CONFIG,
@@ -17,7 +17,7 @@ import { createClientProviders } from './temporal.providers';
 export class TemporalModule {
   static forRoot(
     workerConfig: WorkerOptions,
-    coreConfig?: CoreOptions,
+    runtimeConfig?: RuntimeOptions,
   ): DynamicModule {
     const workerConfigProvider: Provider = {
       provide: TEMPORAL_WORKER_CONFIG,
@@ -26,7 +26,7 @@ export class TemporalModule {
 
     const coreConfigProvider: Provider = {
       provide: TEMPORAL_CORE_CONFIG,
-      useValue: coreConfig || {},
+      useValue: runtimeConfig || {},
     };
 
     return {
@@ -39,19 +39,19 @@ export class TemporalModule {
 
   static forRootAsync(
     asyncWorkerConfig: SharedWorkerAsyncConfiguration,
-    asyncCoreConfig?: CoreOptions,
+    asyncRuntimeConfig?: RuntimeOptions,
   ): DynamicModule {
     const providers: Provider[] = [this.createAsyncProvider(asyncWorkerConfig)];
 
-    const coreConfigProvider: Provider = {
+    const runtimeConfigProvider: Provider = {
       provide: TEMPORAL_CORE_CONFIG,
-      useValue: asyncCoreConfig || {},
+      useValue: asyncRuntimeConfig || {},
     };
 
     return {
       global: true,
       module: TemporalModule,
-      providers: [...providers, coreConfigProvider],
+      providers: [...providers, runtimeConfigProvider],
       imports: [TemporalModule.registerCore()],
       exports: providers,
     };

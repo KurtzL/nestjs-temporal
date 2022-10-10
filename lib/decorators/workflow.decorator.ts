@@ -1,4 +1,5 @@
 import { SetMetadata } from '@nestjs/common';
+
 import { TEMPORAL_MODULE_WORKFLOW_METHOD } from '../temporal.constants';
 
 export interface WorkflowMethodOptions {

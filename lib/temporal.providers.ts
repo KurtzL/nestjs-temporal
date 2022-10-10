@@ -1,6 +1,7 @@
 import { OnApplicationShutdown, Provider } from '@nestjs/common';
-import { TemporalModuleOptions } from './interfaces';
 import { Connection, WorkflowClient } from '@temporalio/client';
+
+import { TemporalModuleOptions } from './interfaces';
 import { getQueueToken } from './utils';
 
 export async function buildClient(

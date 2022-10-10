@@ -1,7 +1,8 @@
 import { Scope, SetMetadata } from '@nestjs/common';
 import { SCOPE_OPTIONS_METADATA } from '@nestjs/common/constants';
-import { TEMPORAL_MODULE_ACTIVITIES } from '../temporal.constants';
 import { ActivityOptions } from '@temporalio/workflow';
+
+import { TEMPORAL_MODULE_ACTIVITIES } from '../temporal.constants';
 
 export interface ActivitiesOptions extends ActivityOptions {
   /**

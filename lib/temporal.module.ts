@@ -1,6 +1,10 @@
 import { DynamicModule, Module, Provider } from '@nestjs/common';
 import { DiscoveryModule } from '@nestjs/core';
-import { NativeConnectionOptions, WorkerOptions, RuntimeOptions } from '@temporalio/worker';
+import {
+  NativeConnectionOptions,
+  WorkerOptions,
+  RuntimeOptions,
+} from '@temporalio/worker';
 
 import { TemporalMetadataAccessor } from './temporal-metadata.accessors';
 import { TemporalExplorer } from './temporal.explorer';
@@ -26,23 +30,29 @@ export class TemporalModule {
   ): DynamicModule {
     const workerConfigProvider: Provider = {
       provide: TEMPORAL_WORKER_CONFIG,
-      useValue: workerConfig,
+      useValue: workerConfig || null,
     };
 
     const connectionConfigProvider: Provider = {
-      provide: TEMPORAL_CORE_CONFIG,
-      useValue: connectionConfig,
+      provide: TEMPORAL_CONNECTION_CONFIG,
+      useValue: connectionConfig || null,
     };
 
     const runtimeConfigProvider: Provider = {
       provide: TEMPORAL_CORE_CONFIG,
-      useValue: runtimeConfig,
+      useValue: runtimeConfig || null,
     };
+
+    const providers: Provider[] = [
+      workerConfigProvider,
+      connectionConfigProvider,
+      runtimeConfigProvider,
+    ];
 
     return {
       global: true,
       module: TemporalModule,
-      providers: [workerConfigProvider, connectionConfigProvider, runtimeConfigProvider],
+      providers,
       imports: [TemporalModule.registerCore()],
     };
   }
@@ -54,7 +64,10 @@ export class TemporalModule {
   ): DynamicModule {
     const providers: Provider[] = [
       this.createAsyncProvider(TEMPORAL_WORKER_CONFIG, asyncWorkerConfig),
-      this.createAsyncProvider(TEMPORAL_CONNECTION_CONFIG, asyncConnectionConfig),
+      this.createAsyncProvider(
+        TEMPORAL_CONNECTION_CONFIG,
+        asyncConnectionConfig,
+      ),
       this.createAsyncProvider(TEMPORAL_CORE_CONFIG, asyncRuntimeConfig),
     ];
 
@@ -69,7 +82,10 @@ export class TemporalModule {
 
   private static createAsyncProvider(
     provide: string,
-    options?: SharedWorkerAsyncConfiguration | SharedRuntimeAsyncConfiguration | SharedConnectionAsyncConfiguration,
+    options?:
+      | SharedWorkerAsyncConfiguration
+      | SharedRuntimeAsyncConfiguration
+      | SharedConnectionAsyncConfiguration,
   ): Provider {
     if (options?.useFactory) {
       return {

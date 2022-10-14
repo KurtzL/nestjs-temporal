@@ -72,6 +72,6 @@
     "@temporalio/workflow": "^1.4.0"
   },
   "dependencies": {
-    "release-it": "^14.12.5"
+    "release-it": "^15.5.0"
   }
 }

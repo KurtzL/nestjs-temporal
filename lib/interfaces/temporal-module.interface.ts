@@ -1,6 +1,7 @@
 import { DynamicModule } from '@nestjs/common';
 import { WorkerOptions } from '@temporalio/worker';
-import { SharedWorkerAsyncConfiguration } from './shared-temporal-config.interface';
+
+import { SharedWorkerAsyncConfiguration } from './shared-worker-config.interface';
 import { TemporalModuleOptions } from './temporal-module-options.interface';
 
 export interface ITemporalModule {

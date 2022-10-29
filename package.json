@@ -8,7 +8,7 @@
     "build": "rimraf -rf dist && tsc -p tsconfig.json",
     "postinstall": "npm run build",
     "format": "prettier --write **/*.{ts,json}",
-    "lint": "eslint \"lib/**/*.ts\" --fix",
+    "lint": "eslint lib --fix",
     "prepublish:next": "npm run build",
     "publish:next": "npm publish --access public --tag next",
     "prepublish:npm": "npm run build",
@@ -72,6 +72,6 @@
     "@temporalio/workflow": "^1.4.0"
   },
   "dependencies": {
-    "release-it": "^14.12.5"
+    "release-it": "^15.5.0"
   }
 }

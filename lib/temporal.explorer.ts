@@ -144,7 +144,7 @@ export class TemporalExplorer
           if (this.metadataAccessor.isActivity(instance[key])) {
             const metadata = this.metadataAccessor.getActivity(instance[key]);
 
-            let args: unknown[] = [metadata?.name];
+            const args: unknown[] = [metadata?.name];
 
             if (isRequestScoped) {
               // TODO: handle request scoped

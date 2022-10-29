@@ -103,6 +103,7 @@ export class AppController {
 
 ## Advanced Options
 
+- Creating the Worker connection:
 ```ts
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -132,10 +133,40 @@ import * as path from 'path';
         };
       },
     }),
+    ClientModule,
   ],
 })
 export class AppModule {}
 ```
+
+- Creating the client connection:
+```ts
+import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TemporalModule } from 'nestjs-temporal';
+import { Connection } from '@temporalio/client';
+
+@Module({
+  imports: [
+    TempModule.registerClientAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: async (config: ConfigService) => {
+        const temporalHost = config.get('app.temporalHost');
+        const connection = await Connection.connect({
+          address: temporalHost,
+        });
+
+        return {
+          connection,
+        };
+      },
+    }),
+  ],
+})
+export class ClientModule {}
+```
+
 
 ## People
 

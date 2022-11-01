@@ -7,3 +7,4 @@ export const TEMPORAL_MODULE_WORKFLOW_METHOD =
 export const TEMPORAL_WORKER_CONFIG = '_temporal_worker_config';
 export const TEMPORAL_CORE_CONFIG = '_temporal_core_config';
 export const TEMPORAL_CLIENT_CONFIG = '_temporal_client_config';
+export const TEMPORAL_CONNECTION_CONFIG = '_temporal_connection_config';

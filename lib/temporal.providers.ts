@@ -1,30 +1,25 @@
-import { OnApplicationShutdown, Provider } from '@nestjs/common';
-import { TemporalModuleOptions } from './interfaces';
+import { Provider } from '@nestjs/common';
 import { Connection, WorkflowClient } from '@temporalio/client';
-import { getQueueToken } from './utils';
 
-export function buildClient(option: TemporalModuleOptions): WorkflowClient {
-  const connection = new Connection(option.connection || {});
-  const client = new WorkflowClient(
-    connection.service,
-    option.workflowOptions || {},
-  );
+import { TemporalModuleOptions } from './interfaces';
+import { getQueueToken, getWorkflowClient } from './utils';
 
-  (connection as any as OnApplicationShutdown).onApplicationShutdown = function (
-    this: Connection,
-  ) {
-    return this.client.close();
-  };
-
-  return client;
+export async function buildClient(
+  option: TemporalModuleOptions,
+): Promise<WorkflowClient> {
+  const connection = await Connection.connect(option.connection);
+  return getWorkflowClient({
+    ...option.workflowOptions,
+    connection,
+  });
 }
 
 export function createClientProviders(
   options: TemporalModuleOptions[],
 ): Provider[] {
   return options.map((option) => ({
-    provide: getQueueToken(option && option.name ? option.name : undefined),
-    useFactory: () => {
+    provide: getQueueToken(option?.name || undefined),
+    useFactory: async () => {
       return buildClient(option || {});
     },
   }));

@@ -101,9 +101,79 @@ export class AppController {
 }
 ```
 
+## Advanced Options
+
+- Creating the Worker connection:
+```ts
+import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TemporalModule } from 'nestjs-temporal';
+import { bundleWorkflowCode, NativeConnection, Runtime } from '@temporalio/worker';
+import * as path from 'path';
+
+@Module({
+  imports: [
+    TempModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: async (config: ConfigService) => {
+        Runtime.install({});
+        const temporalHost = config.get('app.temporalHost');
+        const connection = await NativeConnection.connect({
+          address: temporalHost,
+        });
+        const workflowBundle = await bundleWorkflowCode({
+          workflowsPath: path.join(__dirname, './workflows'),
+        });
+
+        return {
+          connection,
+          taskQueue: 'default',
+          workflowBundle,
+        };
+      },
+    }),
+    ClientModule,
+  ],
+})
+export class AppModule {}
+```
+
+- Creating the client connection:
+```ts
+import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TemporalModule } from 'nestjs-temporal';
+import { Connection } from '@temporalio/client';
+
+@Module({
+  imports: [
+    TempModule.registerClientAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: async (config: ConfigService) => {
+        const temporalHost = config.get('app.temporalHost');
+        const connection = await Connection.connect({
+          address: temporalHost,
+        });
+
+        return {
+          connection,
+        };
+      },
+    }),
+  ],
+})
+export class ClientModule {}
+```
+
+
 ## People
 
 - Author - [Zegue kurt](https://github.com/KurtzL)
+- Contributor - [Surya Prashanth](https://github.com/Prashant-Surya)
+- Contributor - [AmirSaber Sharifi](https://github.com/amirsaber)
+- Contributor - [J.D Nicholls](https://github.com/jdnichollsc)
 
 ## License
 

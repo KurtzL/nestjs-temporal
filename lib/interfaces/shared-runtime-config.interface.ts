@@ -20,6 +20,10 @@ export interface SharedRuntimeAsyncConfiguration
    */
   useFactory?: (...args: any[]) => Promise<RuntimeOptions> | RuntimeOptions;
   /**
+   * Instance of a provider to be injected.
+   */
+  useValue?: RuntimeOptions;
+  /**
    * Optional list of providers to be injected into the context of the Factory function.
    */
   inject?: FactoryProvider['inject'];

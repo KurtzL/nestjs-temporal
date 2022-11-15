@@ -11,6 +11,9 @@ import { TemporalExplorer } from './temporal.explorer';
 import {
   SharedWorkerAsyncConfiguration,
   TemporalModuleOptions,
+  SharedRuntimeAsyncConfiguration,
+  SharedConnectionAsyncConfiguration,
+  SharedWorkflowClientOptions,
 } from './interfaces';
 import {
   TEMPORAL_CORE_CONFIG,
@@ -18,8 +21,7 @@ import {
   TEMPORAL_CONNECTION_CONFIG,
 } from './temporal.constants';
 import { createClientProviders } from './temporal.providers';
-import { SharedRuntimeAsyncConfiguration } from './interfaces/shared-runtime-config.interface';
-import { SharedConnectionAsyncConfiguration } from './interfaces/shared-connection-config.interface';
+import { createAsyncProvider, createClientAsyncProvider } from './utils';
 
 @Module({})
 export class TemporalModule {
@@ -63,12 +65,12 @@ export class TemporalModule {
     asyncRuntimeConfig?: SharedRuntimeAsyncConfiguration,
   ): DynamicModule {
     const providers: Provider[] = [
-      this.createAsyncProvider(TEMPORAL_WORKER_CONFIG, asyncWorkerConfig),
-      this.createAsyncProvider(
+      createAsyncProvider(TEMPORAL_WORKER_CONFIG, asyncWorkerConfig),
+      createAsyncProvider(
         TEMPORAL_CONNECTION_CONFIG,
         asyncConnectionConfig,
       ),
-      this.createAsyncProvider(TEMPORAL_CORE_CONFIG, asyncRuntimeConfig),
+      createAsyncProvider(TEMPORAL_CORE_CONFIG, asyncRuntimeConfig),
     ];
 
     return {
@@ -80,26 +82,6 @@ export class TemporalModule {
     };
   }
 
-  private static createAsyncProvider(
-    provide: string,
-    options?:
-      | SharedWorkerAsyncConfiguration
-      | SharedRuntimeAsyncConfiguration
-      | SharedConnectionAsyncConfiguration,
-  ): Provider {
-    if (options?.useFactory) {
-      return {
-        provide,
-        useFactory: options.useFactory,
-        inject: options.inject || [],
-      };
-    }
-    return {
-      provide,
-      useValue: null,
-    } as Provider;
-  }
-
   static registerClient(options?: TemporalModuleOptions): DynamicModule {
     const createClientProvider = createClientProviders([].concat(options));
     return {
@@ -109,8 +91,17 @@ export class TemporalModule {
       exports: createClientProvider,
     };
   }
-  static registerClientAsync(options: TemporalModuleOptions): DynamicModule {
-    throw new Error('Method not implemented.');
+  static registerClientAsync(
+    asyncSharedWorkflowClientOptions: SharedWorkflowClientOptions
+  ): DynamicModule {
+    const providers = createClientAsyncProvider(asyncSharedWorkflowClientOptions);
+
+    return {
+      global: true,
+      module: TemporalModule,
+      providers,
+      exports: providers,
+    };
   }
 
   private static registerCore() {

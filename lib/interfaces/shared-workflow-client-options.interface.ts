@@ -1,28 +1,29 @@
 import { FactoryProvider, ModuleMetadata, Type } from '@nestjs/common';
-import { NativeConnectionOptions } from '@temporalio/worker';
+import { WorkflowClientOptions } from '@temporalio/client';
 
-export interface SharedConnectionConfigurationFactory {
-  createSharedConfiguration(): Promise<NativeConnectionOptions> | NativeConnectionOptions;
+export interface SharedWorkflowClientOptionsFactory {
+  createSharedConfiguration(): Promise<WorkflowClientOptions> | WorkflowClientOptions;
 }
 
-export interface SharedConnectionAsyncConfiguration
+export interface SharedWorkflowClientOptions
   extends Pick<ModuleMetadata, 'imports'> {
+  name?: string;
   /**
    * Existing Provider to be used.
    */
-  useExisting?: Type<SharedConnectionConfigurationFactory>;
+  useExisting?: Type<SharedWorkflowClientOptionsFactory>;
   /**
    * Type (class name) of provider (instance to be registered and injected).
    */
-  useClass?: Type<SharedConnectionConfigurationFactory>;
+  useClass?: Type<SharedWorkflowClientOptionsFactory>;
   /**
    * Factory function that returns an instance of the provider to be injected.
    */
-  useFactory?: (...args: any[]) => Promise<NativeConnectionOptions> | NativeConnectionOptions;
+  useFactory?: (...args: any[]) => Promise<WorkflowClientOptions> | WorkflowClientOptions;
   /**
    * Instance of a provider to be injected.
    */
-  useValue?: NativeConnectionOptions;
+  useValue?: WorkflowClientOptions;
   /**
    * Optional list of providers to be injected into the context of the Factory function.
    */

@@ -23,11 +23,11 @@ import {
   TEMPORAL_WORKER_CONFIG,
 } from './temporal.constants';
 import { TemporalMetadataAccessor } from './temporal-metadata.accessors';
+import { ActivityOptions } from './decorators';
 
 @Injectable()
 export class TemporalExplorer
-  implements OnModuleInit, OnModuleDestroy, OnApplicationBootstrap
-{
+  implements OnModuleInit, OnModuleDestroy, OnApplicationBootstrap {
   private readonly logger = new Logger(TemporalExplorer.name);
   private readonly injector = new Injector();
   private worker: Worker;
@@ -38,7 +38,7 @@ export class TemporalExplorer
     private readonly discoveryService: DiscoveryService,
     private readonly metadataAccessor: TemporalMetadataAccessor,
     private readonly metadataScanner: MetadataScanner,
-  ) {}
+  ) { }
 
   clearInterval() {
     this.timerId && clearInterval(this.timerId);
@@ -128,7 +128,7 @@ export class TemporalExplorer
         ),
       );
 
-    activities.forEach((wrapper: InstanceWrapper) => {
+    const activitiesLoader = activities.flatMap((wrapper: InstanceWrapper) => {
       const { instance, metatype } = wrapper;
       const isRequestScoped = !wrapper.isDependencyTreeStatic();
 
@@ -137,25 +137,39 @@ export class TemporalExplorer
         instance.constructor || metatype,
       );
 
-      this.metadataScanner.scanFromPrototype(
+      return this.metadataScanner.scanFromPrototype(
         instance,
         Object.getPrototypeOf(instance),
         async (key: string) => {
           if (this.metadataAccessor.isActivity(instance[key])) {
-            const metadata = this.metadataAccessor.getActivity(instance[key]);
+            const metadata = this.metadataAccessor.getActivity(instance[key]) as ActivityOptions;
 
-            const args: unknown[] = [metadata?.name];
+            let activityName = key;
+            if (metadata?.name) {
+              if (typeof metadata.name === 'string') {
+                activityName = metadata.name
+              }
+              else {
+                const activityNameResult = metadata.name(instance);
+                if (typeof activityNameResult === 'string') {
+                  activityName = activityNameResult
+                }
+                else {
+                  activityName = await activityNameResult;
+                }
+              }
+            }
 
             if (isRequestScoped) {
               // TODO: handle request scoped
             } else {
-              activitiesMethod[key] = instance[key].bind(instance);
+              activitiesMethod[activityName] = instance[key].bind(instance);
             }
           }
         },
       );
     });
-
+    await Promise.all(activitiesLoader);
     return activitiesMethod;
   }
 }

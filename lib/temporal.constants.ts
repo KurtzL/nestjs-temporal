@@ -8,3 +8,5 @@ export const TEMPORAL_WORKER_CONFIG = '_temporal_worker_config';
 export const TEMPORAL_CORE_CONFIG = '_temporal_core_config';
 export const TEMPORAL_CLIENT_CONFIG = '_temporal_client_config';
 export const TEMPORAL_CONNECTION_CONFIG = '_temporal_connection_config';
+export const TEMPORAL_ACTIVITIES_MODULES =
+  '_temporal_module_activities_modules';

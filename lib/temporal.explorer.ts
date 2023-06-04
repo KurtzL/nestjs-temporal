@@ -6,6 +6,7 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { DiscoveryService, MetadataScanner, ModuleRef } from '@nestjs/core';
+import { Injector } from '@nestjs/core/injector/injector';
 import { InstanceWrapper } from '@nestjs/core/injector/instance-wrapper';
 import {
   NativeConnection,
@@ -17,7 +18,6 @@ import {
 } from '@temporalio/worker';
 
 import {
-  TEMPORAL_ACTIVITIES_MODULES,
   TEMPORAL_CONNECTION_CONFIG,
   TEMPORAL_CORE_CONFIG,
   TEMPORAL_WORKER_CONFIG,
@@ -29,6 +29,7 @@ export class TemporalExplorer
   implements OnModuleInit, OnModuleDestroy, OnApplicationBootstrap
 {
   private readonly logger = new Logger(TemporalExplorer.name);
+  private readonly injector = new Injector();
   private worker: Worker;
   private timerId: ReturnType<typeof setInterval>;
 
@@ -81,59 +82,70 @@ export class TemporalExplorer
       } as WorkerOptions;
       if (connectionOptions) {
         this.logger.verbose('Connecting to the Temporal server');
-        workerOptions.connection = await NativeConnection.connect(
-          connectionOptions,
-        );
+        workerOptions.connection = await NativeConnection.connect(connectionOptions);
       }
 
       this.logger.verbose('Creating a new Worker');
       this.worker = await Worker.create(
-        Object.assign(workerOptions, workerConfig),
+        Object.assign(
+          workerOptions,
+          workerConfig,
+        ),
       );
     }
   }
 
   getWorkerConfigOptions(name?: string): WorkerOptions {
-    return this.moduleRef.get(TEMPORAL_WORKER_CONFIG || name);
+    return this.moduleRef.get(TEMPORAL_WORKER_CONFIG || name, {
+      strict: false,
+    });
   }
 
   getNativeConnectionOptions(name?: string): NativeConnectionOptions {
-    return this.moduleRef.get(TEMPORAL_CONNECTION_CONFIG || name);
+    return this.moduleRef.get(TEMPORAL_CONNECTION_CONFIG || name, {
+      strict: false,
+    });
   }
 
   getRuntimeOptions(name?: string): RuntimeOptions {
-    return this.moduleRef.get(TEMPORAL_CORE_CONFIG || name);
+    return this.moduleRef.get(TEMPORAL_CORE_CONFIG || name, { strict: false });
   }
 
-  getActivitiesModules(): any[] | undefined {
-    return this.moduleRef.get(TEMPORAL_ACTIVITIES_MODULES) || undefined;
-  }
-
+  /**
+   *
+   * @returns
+   */
   async handleActivities() {
     const activitiesMethod = {};
 
-    const activitiesModules = this.getActivitiesModules();
     const activities: InstanceWrapper[] = this.discoveryService
       .getProviders()
-      .filter(
-        (wrapper: InstanceWrapper) =>
-          this.metadataAccessor.isActivities(
-            !wrapper.metatype || wrapper.inject
-              ? wrapper.instance?.constructor
-              : wrapper.metatype,
-          ) &&
-          (!activitiesModules || activitiesModules.includes(wrapper.metatype)),
+      .filter((wrapper: InstanceWrapper) =>
+        this.metadataAccessor.isActivities(
+          !wrapper.metatype || wrapper.inject
+            ? wrapper.instance?.constructor
+            : wrapper.metatype,
+        ),
       );
 
     activities.forEach((wrapper: InstanceWrapper) => {
-      const { instance } = wrapper;
+      const { instance, metatype } = wrapper;
       const isRequestScoped = !wrapper.isDependencyTreeStatic();
+
+      //
+      const activitiesOptions = this.metadataAccessor.getActivities(
+        instance.constructor || metatype,
+      );
 
       this.metadataScanner.scanFromPrototype(
         instance,
         Object.getPrototypeOf(instance),
         async (key: string) => {
           if (this.metadataAccessor.isActivity(instance[key])) {
+            const metadata = this.metadataAccessor.getActivity(instance[key]);
+
+            const args: unknown[] = [metadata?.name];
+
             if (isRequestScoped) {
               // TODO: handle request scoped
             } else {

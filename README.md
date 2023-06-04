@@ -69,7 +69,7 @@ import { proxyActivities } from '@temporalio/workflow';
 // Only import the activity types
 import { IGreetingActivity } from '../activities';
 
-const { greeting } = proxyActivities<IGreetingActivity>({
+const { greeting, reverseGreeting } = proxyActivities<IGreetingActivity>({
   startToCloseTimeout: '1 minute',
 });
 
@@ -166,50 +166,7 @@ import { Connection } from '@temporalio/client';
 })
 export class ClientModule {}
 ```
-## Multiple workers
 
-Multiple workers can be registered using `TemporalModule.registerWorker` or `TemporalModule.registerWorkerAsync`.
-You must explicitly specify your activity module(s) when registering the worker.
-
-```ts
-// Register the client once at the app level
-import { Module } from "@nestjs/common";
-import { TemporalModule } from "nestjs-temporal";
-
-@Module({
-  imports: [
-    TemporalModule.registerClient()
-  ]
-})
-export class AppModule {
-}
-
-// Configure Worker #1
-@Module({
-  imports: [
-    TemporalModule.registerWorker({
-        taskQueue: "worker-1",
-        workflowsPath: require.resolve("./temporal/workflow-1")
-      },
-      [Greeting1Activity])
-  ]
-})
-export class Worker1Module {
-}
-
-// Configure Worker #2
-@Module({
-  imports: [
-    TemporalModule.registerWorker({
-        taskQueue: "worker-2",
-        workflowsPath: require.resolve("./temporal/workflow-2")
-      },
-      [Greeting2Activity])
-  ]
-})
-export class Worker2Module {
-}
-``` 
 
 ## People
 

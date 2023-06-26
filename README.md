@@ -204,6 +204,7 @@ export class AppModule {
       activityClasses: [Greeting1Activity],
     }),
   ],
+  providers: [Greeting1Activity],
 })
 export class Worker1Module {
 }
@@ -219,6 +220,7 @@ export class Worker1Module {
       activityClasses: [SomeOtherActivity],
     }),
   ],
+  providers: [SomeOtherActivity],
 })
 export class Worker2Module {
 }

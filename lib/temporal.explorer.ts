@@ -50,7 +50,12 @@ export class TemporalExplorer
   }
 
   onModuleDestroy() {
-    this.worker?.shutdown();
+    try {
+      this.worker?.shutdown();
+    } catch (err: any) {
+      this.logger.warn('Temporal worker was not cleanly shutdown.', { err });
+    }
+
     this.clearInterval();
   }
 
@@ -82,15 +87,14 @@ export class TemporalExplorer
       } as WorkerOptions;
       if (connectionOptions) {
         this.logger.verbose('Connecting to the Temporal server');
-        workerOptions.connection = await NativeConnection.connect(connectionOptions);
+        workerOptions.connection = await NativeConnection.connect(
+          connectionOptions,
+        );
       }
 
       this.logger.verbose('Creating a new Worker');
       this.worker = await Worker.create(
-        Object.assign(
-          workerOptions,
-          workerConfig,
-        ),
+        Object.assign(workerOptions, workerConfig),
       );
     }
   }

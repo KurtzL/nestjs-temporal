@@ -1,85 +1,64 @@
-import { DynamicModule, Module, Provider } from '@nestjs/common';
+import { DynamicModule, Module } from '@nestjs/common';
 import { DiscoveryModule } from '@nestjs/core';
-import {
-  NativeConnectionOptions,
-  WorkerOptions,
-  RuntimeOptions,
-} from '@temporalio/worker';
 
 import { TemporalMetadataAccessor } from './temporal-metadata.accessors';
 import { TemporalExplorer } from './temporal.explorer';
 import {
-  SharedWorkerAsyncConfiguration,
-  TemporalModuleOptions,
-  SharedRuntimeAsyncConfiguration,
-  SharedConnectionAsyncConfiguration,
   SharedWorkflowClientOptions,
+  TemporalModuleOptions,
 } from './interfaces';
-import {
-  TEMPORAL_CORE_CONFIG,
-  TEMPORAL_WORKER_CONFIG,
-  TEMPORAL_CONNECTION_CONFIG,
-} from './temporal.constants';
 import { createClientProviders } from './temporal.providers';
-import { createAsyncProvider, createClientAsyncProvider } from './utils';
+import { createClientAsyncProvider } from './utils';
+import {
+  ConfigurableModuleClass,
+  TEMPORAL_MODULE_ASYNC_OPTIONS_TYPE,
+  TEMPORAL_MODULE_OPTIONS_TYPE,
+} from './temporal.module-definition';
 
 @Module({})
-export class TemporalModule {
-  static forRoot(
-    workerConfig: WorkerOptions,
-    connectionConfig?: NativeConnectionOptions,
-    runtimeConfig?: RuntimeOptions,
-  ): DynamicModule {
-    const workerConfigProvider: Provider = {
-      provide: TEMPORAL_WORKER_CONFIG,
-      useValue: workerConfig || null,
-    };
-
-    const connectionConfigProvider: Provider = {
-      provide: TEMPORAL_CONNECTION_CONFIG,
-      useValue: connectionConfig || null,
-    };
-
-    const runtimeConfigProvider: Provider = {
-      provide: TEMPORAL_CORE_CONFIG,
-      useValue: runtimeConfig || null,
-    };
-
-    const providers: Provider[] = [
-      workerConfigProvider,
-      connectionConfigProvider,
-      runtimeConfigProvider,
-    ];
-
-    return {
-      global: true,
-      module: TemporalModule,
-      providers,
-      imports: [TemporalModule.registerCore()],
-    };
+export class TemporalModule extends ConfigurableModuleClass {
+  /**
+   * Create a new Temporal worker.
+   *
+   * @deprecated Use registerWorker.
+   */
+  static forRoot(options: typeof TEMPORAL_MODULE_OPTIONS_TYPE): DynamicModule {
+    return TemporalModule.registerWorker(options);
   }
 
+  /**
+   * Create a new Temporal worker.
+   *
+   * @deprecated Use registerWorker.
+   */
   static forRootAsync(
-    asyncWorkerConfig: SharedWorkerAsyncConfiguration,
-    asyncConnectionConfig?: SharedConnectionAsyncConfiguration,
-    asyncRuntimeConfig?: SharedRuntimeAsyncConfiguration,
+    options: typeof TEMPORAL_MODULE_ASYNC_OPTIONS_TYPE,
   ): DynamicModule {
-    const providers: Provider[] = [
-      createAsyncProvider(TEMPORAL_WORKER_CONFIG, asyncWorkerConfig),
-      createAsyncProvider(
-        TEMPORAL_CONNECTION_CONFIG,
-        asyncConnectionConfig,
-      ),
-      createAsyncProvider(TEMPORAL_CORE_CONFIG, asyncRuntimeConfig),
-    ];
+    return TemporalModule.registerWorkerAsync(options);
+  }
 
-    return {
-      global: true,
-      module: TemporalModule,
-      providers: [...providers],
-      imports: [TemporalModule.registerCore()],
-      exports: providers,
-    };
+  static registerWorker(
+    options: typeof TEMPORAL_MODULE_OPTIONS_TYPE,
+  ): DynamicModule {
+    const superDynamicModule = super.registerWorker(options);
+    superDynamicModule.imports.push(DiscoveryModule);
+    superDynamicModule.providers.push(
+      TemporalExplorer,
+      TemporalMetadataAccessor,
+    );
+    return superDynamicModule;
+  }
+
+  static registerWorkerAsync(
+    options: typeof TEMPORAL_MODULE_ASYNC_OPTIONS_TYPE,
+  ): DynamicModule {
+    const superDynamicModule = super.registerWorkerAsync(options);
+    superDynamicModule.imports.push(DiscoveryModule);
+    superDynamicModule.providers.push(
+      TemporalExplorer,
+      TemporalMetadataAccessor,
+    );
+    return superDynamicModule;
   }
 
   static registerClient(options?: TemporalModuleOptions): DynamicModule {
@@ -92,24 +71,17 @@ export class TemporalModule {
     };
   }
   static registerClientAsync(
-    asyncSharedWorkflowClientOptions: SharedWorkflowClientOptions
+    asyncSharedWorkflowClientOptions: SharedWorkflowClientOptions,
   ): DynamicModule {
-    const providers = createClientAsyncProvider(asyncSharedWorkflowClientOptions);
+    const providers = createClientAsyncProvider(
+      asyncSharedWorkflowClientOptions,
+    );
 
     return {
       global: true,
       module: TemporalModule,
       providers,
       exports: providers,
-    };
-  }
-
-  private static registerCore() {
-    return {
-      global: true,
-      module: TemporalModule,
-      imports: [DiscoveryModule],
-      providers: [TemporalExplorer, TemporalMetadataAccessor],
     };
   }
 }

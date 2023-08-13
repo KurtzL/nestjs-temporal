@@ -1,12 +1,12 @@
 import {
+  Inject,
   Injectable,
   Logger,
   OnApplicationBootstrap,
   OnModuleDestroy,
   OnModuleInit,
 } from '@nestjs/common';
-import { DiscoveryService, MetadataScanner, ModuleRef } from '@nestjs/core';
-import { Injector } from '@nestjs/core/injector/injector';
+import { DiscoveryService, MetadataScanner } from '@nestjs/core';
 import { InstanceWrapper } from '@nestjs/core/injector/instance-wrapper';
 import {
   NativeConnection,
@@ -16,25 +16,22 @@ import {
   Worker,
   WorkerOptions,
 } from '@temporalio/worker';
-
 import {
-  TEMPORAL_CONNECTION_CONFIG,
-  TEMPORAL_CORE_CONFIG,
-  TEMPORAL_WORKER_CONFIG,
-} from './temporal.constants';
+  TEMPORAL_MODULE_OPTIONS_TOKEN,
+  TemporalModuleOptions,
+} from './temporal.module-definition';
 import { TemporalMetadataAccessor } from './temporal-metadata.accessors';
 
 @Injectable()
 export class TemporalExplorer
   implements OnModuleInit, OnModuleDestroy, OnApplicationBootstrap
 {
+  @Inject(TEMPORAL_MODULE_OPTIONS_TOKEN) private options: TemporalModuleOptions;
   private readonly logger = new Logger(TemporalExplorer.name);
-  private readonly injector = new Injector();
   private worker: Worker;
   private timerId: ReturnType<typeof setInterval>;
 
   constructor(
-    private readonly moduleRef: ModuleRef,
     private readonly discoveryService: DiscoveryService,
     private readonly metadataAccessor: TemporalMetadataAccessor,
     private readonly metadataScanner: MetadataScanner,
@@ -99,57 +96,47 @@ export class TemporalExplorer
     }
   }
 
-  getWorkerConfigOptions(name?: string): WorkerOptions {
-    return this.moduleRef.get(TEMPORAL_WORKER_CONFIG || name, {
-      strict: false,
-    });
+  getWorkerConfigOptions(): WorkerOptions {
+    return this.options.workerOptions;
   }
 
-  getNativeConnectionOptions(name?: string): NativeConnectionOptions {
-    return this.moduleRef.get(TEMPORAL_CONNECTION_CONFIG || name, {
-      strict: false,
-    });
+  getNativeConnectionOptions(): NativeConnectionOptions | undefined {
+    return this.options.connectionOptions;
   }
 
-  getRuntimeOptions(name?: string): RuntimeOptions {
-    return this.moduleRef.get(TEMPORAL_CORE_CONFIG || name, { strict: false });
+  getRuntimeOptions(): RuntimeOptions | undefined {
+    return this.options.runtimeOptions;
   }
 
-  /**
-   *
-   * @returns
-   */
+  getActivityClasses(): object[] | undefined {
+    return this.options.activityClasses;
+  }
+
   async handleActivities() {
     const activitiesMethod = {};
 
+    const activityClasses = this.getActivityClasses();
     const activities: InstanceWrapper[] = this.discoveryService
       .getProviders()
-      .filter((wrapper: InstanceWrapper) =>
-        this.metadataAccessor.isActivities(
-          !wrapper.metatype || wrapper.inject
-            ? wrapper.instance?.constructor
-            : wrapper.metatype,
-        ),
+      .filter(
+        (wrapper: InstanceWrapper) =>
+          this.metadataAccessor.isActivities(
+            !wrapper.metatype || wrapper.inject
+              ? wrapper.instance?.constructor
+              : wrapper.metatype,
+          ) &&
+          (!activityClasses || activityClasses.includes(wrapper.metatype)),
       );
 
     activities.forEach((wrapper: InstanceWrapper) => {
-      const { instance, metatype } = wrapper;
+      const { instance } = wrapper;
       const isRequestScoped = !wrapper.isDependencyTreeStatic();
-
-      //
-      const activitiesOptions = this.metadataAccessor.getActivities(
-        instance.constructor || metatype,
-      );
 
       this.metadataScanner.scanFromPrototype(
         instance,
         Object.getPrototypeOf(instance),
         async (key: string) => {
           if (this.metadataAccessor.isActivity(instance[key])) {
-            const metadata = this.metadataAccessor.getActivity(instance[key]);
-
-            const args: unknown[] = [metadata?.name];
-
             if (isRequestScoped) {
               // TODO: handle request scoped
             } else {

@@ -49,7 +49,6 @@ export class AppModule {
 ```ts
 import { Injectable } from '@nestjs/common';
 import { Activities, Activity } from 'nestjs-temporal';
-import { ActivityInterface } from '@temporalio/activity';
 
 @Injectable()
 @Activities()
@@ -62,7 +61,7 @@ export class GreetingActivity {
   }
 }
 
-export interface IGreetingActivity extends ActivityInterface {
+export interface IGreetingActivity {
   greeting(name: string): Promise<string>;
 }
 ```
@@ -232,6 +231,7 @@ export class Worker2Module {
 - Contributor - [Surya Prashanth](https://github.com/Prashant-Surya)
 - Contributor - [AmirSaber Sharifi](https://github.com/amirsaber)
 - Contributor - [J.D Nicholls](https://github.com/jdnichollsc)
+- Contributor - [Clinton Blackburn](https://github.com/clintonb)
 
 ## License
 

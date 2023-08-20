@@ -41,7 +41,7 @@ export class TemporalModule extends ConfigurableModuleClass {
     options: typeof TEMPORAL_MODULE_OPTIONS_TYPE,
   ): DynamicModule {
     const superDynamicModule = super.registerWorker(options);
-    superDynamicModule.imports.push(DiscoveryModule);
+    superDynamicModule.imports = [DiscoveryModule];
     superDynamicModule.providers.push(
       TemporalExplorer,
       TemporalMetadataAccessor,

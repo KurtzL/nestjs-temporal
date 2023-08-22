@@ -1,0 +1,20 @@
+# source
+lib/
+
+# config
+tsconfig.json
+tsconfig.build.json
+tsconfig.spec.json
+.prettierignore
+.prettierrc
+.eslintignore
+.eslintrc.js
+.commitlintrc.json
+commitlint.config.js
+jest.config.js
+
+.github/
+.husky/
+.idea/
+yarn.lock
+package-lock.json

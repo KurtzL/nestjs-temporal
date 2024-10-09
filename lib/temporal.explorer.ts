@@ -52,7 +52,7 @@ export class TemporalExplorer
   }
 
   onApplicationBootstrap() {
-    this.workerRunPromise = this.worker.run();
+    this.workerRunPromise = this.worker?.run();
   }
 
   async explore() {

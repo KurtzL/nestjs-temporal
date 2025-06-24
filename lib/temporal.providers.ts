@@ -1,15 +1,14 @@
 import { Provider } from '@nestjs/common';
-import { Connection, WorkflowClient } from '@temporalio/client';
+import { Connection, Client } from '@temporalio/client';
 
 import { TemporalModuleOptions } from './interfaces';
-import { getQueueToken, getWorkflowClient } from './utils';
+import { getQueueToken, getClient } from './utils';
 
 export async function buildClient(
   option: TemporalModuleOptions,
-): Promise<WorkflowClient> {
+): Promise<Client> {
   const connection = await Connection.connect(option.connection);
-  return getWorkflowClient({
-    ...option.workflowOptions,
+  return getClient({
     connection,
   });
 }

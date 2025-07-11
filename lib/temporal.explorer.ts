@@ -45,7 +45,6 @@ export class TemporalExplorer
     try {
       this.worker?.shutdown();
       await this.workerRunPromise;
-
     } catch (err: any) {
       this.logger.warn('Temporal worker was not cleanly shutdown.', { err });
     }
@@ -62,6 +61,8 @@ export class TemporalExplorer
 
     // should contain taskQueue
     if (workerConfig.taskQueue) {
+      this.findDuplicateActivityMethods();
+
       const activitiesFunc = await this.handleActivities();
 
       if (runTimeOptions) {
@@ -74,9 +75,8 @@ export class TemporalExplorer
       } as WorkerOptions;
       if (connectionOptions) {
         this.logger.verbose('Connecting to the Temporal server');
-        workerOptions.connection = await NativeConnection.connect(
-          connectionOptions,
-        );
+        workerOptions.connection =
+          await NativeConnection.connect(connectionOptions);
       }
 
       this.logger.verbose('Creating a new Worker');
@@ -100,6 +100,42 @@ export class TemporalExplorer
 
   getActivityClasses(): object[] | undefined {
     return this.options.activityClasses;
+  }
+
+  findDuplicateActivityMethods() {
+    if (!this.options.errorOnDuplicateActivities) {
+      return;
+    }
+
+    const activityClasses = this.getActivityClasses();
+    const activityMethods: Record<string, string[]> = {};
+
+    activityClasses.forEach((wrapper: InstanceWrapper) => {
+      const { instance } = wrapper;
+
+      this.metadataScanner
+        .getAllMethodNames(Object.getPrototypeOf(instance))
+        .map((key) => {
+          if (this.metadataAccessor.isActivity(instance[key])) {
+            activityMethods[key] = (activityMethods[key] || []).concat(
+              instance.constructor.name,
+            );
+          }
+        });
+    });
+
+    const violations = Object.entries(activityMethods).filter(
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      ([method, classes]) => classes.length > 1,
+    );
+
+    if (violations.length > 0) {
+      const message = `Activity names must be unique across all Activity classes. Identified activities with conflicting names: ${JSON.stringify(
+        Object.fromEntries(violations),
+      )}`;
+      this.logger.error(message);
+      throw new Error(message);
+    }
   }
 
   async handleActivities() {

@@ -3,7 +3,7 @@ import { SetMetadata } from '@nestjs/common';
 import { TEMPORAL_MODULE_ACTIVITY } from '../temporal.constants';
 
 export interface ActivityOptions {
-  name?: string;
+  name?: string | ((instance: any) => string | Promise<string>);
 }
 
 export function Activity(): MethodDecorator;

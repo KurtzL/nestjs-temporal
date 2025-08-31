@@ -1,10 +1,14 @@
-import { Provider } from "@nestjs/common";
-import { WorkflowClientOptions } from "@temporalio/client";
+import { Provider } from '@nestjs/common';
+import { WorkflowClientOptions } from '@temporalio/client';
 
-import { SharedWorkflowClientOptions } from "../interfaces/shared-workflow-client-options.interface";
-import { SharedConnectionAsyncConfiguration, SharedRuntimeAsyncConfiguration, SharedWorkerAsyncConfiguration } from "../interfaces";
-import { getWorkflowClient } from "./client.util";
-import { getAsyncQueueToken, getQueueToken } from "./get-queue-token.util";
+import { SharedWorkflowClientOptions } from '../interfaces/shared-workflow-client-options.interface';
+import {
+  SharedConnectionAsyncConfiguration,
+  SharedRuntimeAsyncConfiguration,
+  SharedWorkerAsyncConfiguration,
+} from '../interfaces';
+import { getWorkflowClient } from './client.util';
+import { getAsyncQueueToken, getQueueToken } from './get-queue-token.util';
 
 export function createAsyncProvider(
   provide: string,
@@ -32,13 +36,14 @@ export function createClientAsyncProvider(
   asyncOptions: SharedWorkflowClientOptions,
 ): Provider[] {
   const name = asyncOptions.name ? asyncOptions.name : undefined;
-  const optionsProvide = getAsyncQueueToken(name)
+  const optionsProvide = getAsyncQueueToken(name);
   const clientProvide = getQueueToken(name);
   return [
     createAsyncProvider(optionsProvide, asyncOptions),
     {
       provide: clientProvide,
-      useFactory: (options?: WorkflowClientOptions) => getWorkflowClient(options),
+      useFactory: (options?: WorkflowClientOptions) =>
+        getWorkflowClient(options),
       inject: [optionsProvide],
     },
   ];

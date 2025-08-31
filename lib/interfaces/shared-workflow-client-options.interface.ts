@@ -2,7 +2,9 @@ import { FactoryProvider, ModuleMetadata, Type } from '@nestjs/common';
 import { WorkflowClientOptions } from '@temporalio/client';
 
 export interface SharedWorkflowClientOptionsFactory {
-  createSharedConfiguration(): Promise<WorkflowClientOptions> | WorkflowClientOptions;
+  createSharedConfiguration():
+    | Promise<WorkflowClientOptions>
+    | WorkflowClientOptions;
 }
 
 export interface SharedWorkflowClientOptions
@@ -19,7 +21,9 @@ export interface SharedWorkflowClientOptions
   /**
    * Factory function that returns an instance of the provider to be injected.
    */
-  useFactory?: (...args: any[]) => Promise<WorkflowClientOptions> | WorkflowClientOptions;
+  useFactory?: (
+    ...args: any[]
+  ) => Promise<WorkflowClientOptions> | WorkflowClientOptions;
   /**
    * Instance of a provider to be injected.
    */

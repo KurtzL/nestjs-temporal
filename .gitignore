@@ -18,3 +18,5 @@ npm-debug.log
 # dist
 /dist
 cc-test-reporter
+
+.claude/settings.local.json

@@ -28,7 +28,7 @@ export class TemporalExplorer
   implements OnModuleInit, OnModuleDestroy, OnApplicationBootstrap {
   private readonly logger = new Logger(TemporalExplorer.name);
   private worker: Worker;
-  private timerId: ReturnType<typeof setInterval>;
+  private workerRunPromise: Promise<void>
 
   constructor(
     private readonly discoveryService: DiscoveryService,
@@ -36,32 +36,22 @@ export class TemporalExplorer
     private readonly metadataScanner: MetadataScanner,
   ) { }
 
-  clearInterval() {
-    this.timerId && clearInterval(this.timerId);
-    this.timerId = null;
-  }
-
   async onModuleInit() {
     await this.explore();
   }
 
-  onModuleDestroy() {
+  async onModuleDestroy() {
     try {
       this.worker?.shutdown();
+      await this.workerRunPromise;
+
     } catch (err: any) {
       this.logger.warn('Temporal worker was not cleanly shutdown.', { err });
     }
-
-    this.clearInterval();
   }
 
   onApplicationBootstrap() {
-    this.timerId = setInterval(() => {
-      if (this.worker) {
-        this.worker.run();
-        this.clearInterval();
-      }
-    }, 1000);
+    this.workerRunPromise = this.worker?.run();
   }
 
   async explore() {

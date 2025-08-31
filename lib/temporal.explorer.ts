@@ -1,12 +1,12 @@
 import {
+  Inject,
   Injectable,
   Logger,
   OnApplicationBootstrap,
   OnModuleDestroy,
   OnModuleInit,
 } from '@nestjs/common';
-import { DiscoveryService, MetadataScanner, ModuleRef } from '@nestjs/core';
-import { Injector } from '@nestjs/core/injector/injector';
+import { DiscoveryService, MetadataScanner } from '@nestjs/core';
 import { InstanceWrapper } from '@nestjs/core/injector/instance-wrapper';
 import {
   NativeConnection,
@@ -16,25 +16,21 @@ import {
   Worker,
   WorkerOptions,
 } from '@temporalio/worker';
-
 import {
-  TEMPORAL_CONNECTION_CONFIG,
-  TEMPORAL_CORE_CONFIG,
-  TEMPORAL_WORKER_CONFIG,
-} from './temporal.constants';
+  TEMPORAL_MODULE_OPTIONS_TOKEN,
+  TemporalModuleOptions,
+} from './temporal.module-definition';
 import { TemporalMetadataAccessor } from './temporal-metadata.accessors';
 import { ActivityOptions } from './decorators';
 
 @Injectable()
-export class TemporalExplorer
+export class TemporalExplorer 
   implements OnModuleInit, OnModuleDestroy, OnApplicationBootstrap {
   private readonly logger = new Logger(TemporalExplorer.name);
-  private readonly injector = new Injector();
   private worker: Worker;
   private timerId: ReturnType<typeof setInterval>;
 
   constructor(
-    private readonly moduleRef: ModuleRef,
     private readonly discoveryService: DiscoveryService,
     private readonly metadataAccessor: TemporalMetadataAccessor,
     private readonly metadataScanner: MetadataScanner,
@@ -50,7 +46,12 @@ export class TemporalExplorer
   }
 
   onModuleDestroy() {
-    this.worker?.shutdown();
+    try {
+      this.worker?.shutdown();
+    } catch (err: any) {
+      this.logger.warn('Temporal worker was not cleanly shutdown.', { err });
+    }
+
     this.clearInterval();
   }
 
@@ -82,51 +83,50 @@ export class TemporalExplorer
       } as WorkerOptions;
       if (connectionOptions) {
         this.logger.verbose('Connecting to the Temporal server');
-        workerOptions.connection = await NativeConnection.connect(connectionOptions);
+        workerOptions.connection = await NativeConnection.connect(
+          connectionOptions,
+        );
       }
 
       this.logger.verbose('Creating a new Worker');
       this.worker = await Worker.create(
-        Object.assign(
-          workerOptions,
-          workerConfig,
-        ),
+        Object.assign(workerOptions, workerConfig),
       );
     }
   }
 
-  getWorkerConfigOptions(name?: string): WorkerOptions {
-    return this.moduleRef.get(TEMPORAL_WORKER_CONFIG || name, {
-      strict: false,
-    });
+  getWorkerConfigOptions(): WorkerOptions {
+    return this.options.workerOptions;
   }
 
-  getNativeConnectionOptions(name?: string): NativeConnectionOptions {
-    return this.moduleRef.get(TEMPORAL_CONNECTION_CONFIG || name, {
-      strict: false,
-    });
+  getNativeConnectionOptions(): NativeConnectionOptions | undefined {
+    return this.options.connectionOptions;
   }
 
-  getRuntimeOptions(name?: string): RuntimeOptions {
-    return this.moduleRef.get(TEMPORAL_CORE_CONFIG || name, { strict: false });
+  getRuntimeOptions(): RuntimeOptions | undefined {
+    return this.options.runtimeOptions;
   }
 
-  /**
-   *
-   * @returns
-   */
+  getActivityClasses(): object[] | undefined {
+    return this.options.activityClasses;
+  }
+
   async handleActivities() {
     const activitiesMethod = {};
 
+    const activityClasses = this.getActivityClasses();
     const activities: InstanceWrapper[] = this.discoveryService
       .getProviders()
-      .filter((wrapper: InstanceWrapper) =>
-        this.metadataAccessor.isActivities(
-          !wrapper.metatype || wrapper.inject
-            ? wrapper.instance?.constructor
-            : wrapper.metatype,
-        ),
+      .filter(
+        (wrapper: InstanceWrapper) =>
+          this.metadataAccessor.isActivities(
+            !wrapper.metatype || wrapper.inject
+              ? wrapper.instance?.constructor
+              : wrapper.metatype,
+          ) &&
+          (!activityClasses || activityClasses.includes(wrapper.metatype)),
       );
+
 
     const activitiesLoader = activities.flatMap((wrapper: InstanceWrapper) => {
       const { instance, metatype } = wrapper;
@@ -142,6 +142,7 @@ export class TemporalExplorer
         Object.getPrototypeOf(instance),
         async (key: string) => {
           if (this.metadataAccessor.isActivity(instance[key])) {
+
             const metadata = this.metadataAccessor.getActivity(instance[key]) as ActivityOptions;
 
             let activityName = key;
@@ -159,6 +160,7 @@ export class TemporalExplorer
                 }
               }
             }
+
 
             if (isRequestScoped) {
               // TODO: handle request scoped

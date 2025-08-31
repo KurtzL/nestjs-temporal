@@ -32,21 +32,23 @@ import { TemporalModule } from 'nestjs-temporal';
 
 @Module({
   imports: [
-    TemporalModule.forRoot({
-      taskQueue: 'default',
-      workflowsPath: require.resolve('./temporal/workflow'),
+    TemporalModule.registerWorker({
+      workerOptions: {
+        taskQueue: 'default',
+        workflowsPath: require.resolve('./temporal/workflow'),
+      },
     }),
-    
+
     TemporalModule.registerClient(),
   ],
 })
-export class AppModule {}
+export class AppModule {
+}
 ```
 
 ```ts
 import { Injectable } from '@nestjs/common';
 import { Activities, Activity } from 'nestjs-temporal';
-import { ActivityInterface } from '@temporalio/activity';
 
 @Injectable()
 @Activities()
@@ -59,7 +61,7 @@ export class GreetingActivity {
   }
 }
 
-export interface IGreetingActivity extends ActivityInterface {
+export interface IGreetingActivity {
   greeting(name: string): Promise<string>;
 }
 ```
@@ -69,7 +71,7 @@ import { proxyActivities } from '@temporalio/workflow';
 // Only import the activity types
 import { IGreetingActivity } from '../activities';
 
-const { greeting, reverseGreeting } = proxyActivities<IGreetingActivity>({
+const { greeting } = proxyActivities<IGreetingActivity>({
   startToCloseTimeout: '1 minute',
 });
 
@@ -113,7 +115,7 @@ import * as path from 'path';
 
 @Module({
   imports: [
-    TempModule.forRootAsync({
+    TemporalModule.registerWorkerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: async (config: ConfigService) => {
@@ -127,9 +129,11 @@ import * as path from 'path';
         });
 
         return {
-          connection,
-          taskQueue: 'default',
-          workflowBundle,
+          workerOptions: {
+            connection,
+            taskQueue: 'default',
+            workflowBundle,
+          }
         };
       },
     }),
@@ -166,7 +170,60 @@ import { Connection } from '@temporalio/client';
 })
 export class ClientModule {}
 ```
+## Multiple workers
 
+Multiple workers can be registered by making multiple calls to `TemporalModule.registerWorker` or 
+`TemporalModule.registerWorkerAsync`.
+
+You must explicitly specify your activity classes when registering multiple workers; otherwise, the workers may 
+register all activities marked by `@Activity()`. You may find it more convenient to import dynamic worker module into 
+the module that actually contains the workflow and activities rather than your root `AppModule`. 
+
+```ts
+// Register the client once at the app level
+import { Module } from '@nestjs/common';
+import { TemporalModule } from 'nestjs-temporal';
+
+@Module({
+  imports: [
+    TemporalModule.registerClient(),
+  ],
+})
+export class AppModule {
+}
+
+// Configure Worker #1
+@Module({
+  imports: [
+    TemporalModule.registerWorker({
+      workerOptions: {
+        taskQueue: 'worker-1',
+        workflowsPath: require.resolve('./temporal/workflow-1'),
+      },
+      activityClasses: [Greeting1Activity],
+    }),
+  ],
+  providers: [Greeting1Activity],
+})
+export class Worker1Module {
+}
+
+// Configure Worker #2
+@Module({
+  imports: [
+    TemporalModule.registerWorker({
+      workerOptions: {
+        taskQueue: 'worker-2',
+        workflowsPath: require.resolve('./temporal/workflow-2'),
+      },
+      activityClasses: [SomeOtherActivity],
+    }),
+  ],
+  providers: [SomeOtherActivity],
+})
+export class Worker2Module {
+}
+``` 
 
 ## People
 
@@ -174,6 +231,7 @@ export class ClientModule {}
 - Contributor - [Surya Prashanth](https://github.com/Prashant-Surya)
 - Contributor - [AmirSaber Sharifi](https://github.com/amirsaber)
 - Contributor - [J.D Nicholls](https://github.com/jdnichollsc)
+- Contributor - [Clinton Blackburn](https://github.com/clintonb)
 
 ## License
 

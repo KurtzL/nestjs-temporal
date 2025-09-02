@@ -21,11 +21,12 @@ import {
   TemporalModuleOptions,
 } from './temporal.module-definition';
 import { TemporalMetadataAccessor } from './temporal-metadata.accessors';
-import { ActivityOptions } from './decorators';
 
 @Injectable()
-export class TemporalExplorer 
-  implements OnModuleInit, OnModuleDestroy, OnApplicationBootstrap {
+export class TemporalExplorer
+  implements OnModuleInit, OnModuleDestroy, OnApplicationBootstrap
+{
+  @Inject(TEMPORAL_MODULE_OPTIONS_TOKEN) private options: TemporalModuleOptions;
   private readonly logger = new Logger(TemporalExplorer.name);
   private worker: Worker;
   private workerRunPromise: Promise<void>
@@ -34,7 +35,7 @@ export class TemporalExplorer
     private readonly discoveryService: DiscoveryService,
     private readonly metadataAccessor: TemporalMetadataAccessor,
     private readonly metadataScanner: MetadataScanner,
-  ) { }
+  ) {}
 
   async onModuleInit() {
     await this.explore();
@@ -117,51 +118,25 @@ export class TemporalExplorer
           (!activityClasses || activityClasses.includes(wrapper.metatype)),
       );
 
-
-    const activitiesLoader = activities.flatMap((wrapper: InstanceWrapper) => {
-      const { instance, metatype } = wrapper;
+    activities.forEach((wrapper: InstanceWrapper) => {
+      const { instance } = wrapper;
       const isRequestScoped = !wrapper.isDependencyTreeStatic();
 
-      //
-      const activitiesOptions = this.metadataAccessor.getActivities(
-        instance.constructor || metatype,
-      );
-
-      return this.metadataScanner.scanFromPrototype(
+      this.metadataScanner.scanFromPrototype(
         instance,
         Object.getPrototypeOf(instance),
         async (key: string) => {
           if (this.metadataAccessor.isActivity(instance[key])) {
-
-            const metadata = this.metadataAccessor.getActivity(instance[key]) as ActivityOptions;
-
-            let activityName = key;
-            if (metadata?.name) {
-              if (typeof metadata.name === 'string') {
-                activityName = metadata.name
-              }
-              else {
-                const activityNameResult = metadata.name(instance);
-                if (typeof activityNameResult === 'string') {
-                  activityName = activityNameResult
-                }
-                else {
-                  activityName = await activityNameResult;
-                }
-              }
-            }
-
-
             if (isRequestScoped) {
               // TODO: handle request scoped
             } else {
-              activitiesMethod[activityName] = instance[key].bind(instance);
+              activitiesMethod[key] = instance[key].bind(instance);
             }
           }
         },
       );
     });
-    await Promise.all(activitiesLoader);
+
     return activitiesMethod;
   }
 }

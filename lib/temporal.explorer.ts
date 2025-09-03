@@ -29,7 +29,7 @@ export class TemporalExplorer
   @Inject(TEMPORAL_MODULE_OPTIONS_TOKEN) private options: TemporalModuleOptions;
   private readonly logger = new Logger(TemporalExplorer.name);
   private worker: Worker;
-  private workerRunPromise: Promise<void>
+  private workerRunPromise: Promise<void>;
 
   constructor(
     private readonly discoveryService: DiscoveryService,

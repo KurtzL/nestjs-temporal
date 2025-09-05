@@ -1,5 +1,5 @@
 {
-  "name": "nestjs-temporal",
+  "name": "@liholiho/nestjs-temporal",
   "version": "2.0.1",
   "description": "temporal for nestjs framework",
   "main": "dist/index.js",

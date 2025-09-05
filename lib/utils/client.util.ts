@@ -1,7 +1,7 @@
 import { OnApplicationShutdown } from '@nestjs/common';
-import { WorkflowClient, WorkflowClientOptions } from '@temporalio/client';
+import { Client, ClientOptions } from '@temporalio/client';
 
-export function assignOnAppShutdownHook(client: WorkflowClient) {
+export function assignOnAppShutdownHook(client: Client) {
   (client as unknown as OnApplicationShutdown).onApplicationShutdown =
     async () =>
       client.connection
@@ -14,7 +14,8 @@ export function assignOnAppShutdownHook(client: WorkflowClient) {
   return client;
 }
 
-export function getWorkflowClient(options?: WorkflowClientOptions) {
-  const client = new WorkflowClient(options);
+export function getClient(options?: ClientOptions) {
+  const client = new Client(options);
   return assignOnAppShutdownHook(client);
 }
+

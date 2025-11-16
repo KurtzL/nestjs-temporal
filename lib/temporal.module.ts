@@ -15,21 +15,31 @@ import {
   TEMPORAL_MODULE_OPTIONS_TYPE,
 } from './temporal.module-definition';
 
+/**
+ * TemporalModule provides integration between NestJS and Temporal workflow orchestration.
+ *
+ * Use registerWorker() or registerWorkerAsync() to register Temporal workers that execute activities.
+ * Use registerClient() or registerClientAsync() to register Temporal clients for starting workflows.
+ */
 @Module({})
 export class TemporalModule extends ConfigurableModuleClass {
   /**
    * Create a new Temporal worker.
    *
-   * @deprecated Use registerWorker.
+   * @deprecated Use registerWorker instead.
+   * @param options - Worker configuration options
+   * @returns Dynamic module configuration
    */
   static forRoot(options: typeof TEMPORAL_MODULE_OPTIONS_TYPE): DynamicModule {
     return TemporalModule.registerWorker(options);
   }
 
   /**
-   * Create a new Temporal worker.
+   * Create a new Temporal worker asynchronously.
    *
-   * @deprecated Use registerWorker.
+   * @deprecated Use registerWorkerAsync instead.
+   * @param options - Async worker configuration options
+   * @returns Dynamic module configuration
    */
   static forRootAsync(
     options: typeof TEMPORAL_MODULE_ASYNC_OPTIONS_TYPE,
@@ -37,6 +47,13 @@ export class TemporalModule extends ConfigurableModuleClass {
     return TemporalModule.registerWorkerAsync(options);
   }
 
+  /**
+   * Registers a Temporal worker synchronously.
+   * The worker will discover and register all activities decorated with @Activities() and @Activity().
+   *
+   * @param options - Worker configuration options
+   * @returns Dynamic module configuration
+   */
   static registerWorker(
     options: typeof TEMPORAL_MODULE_OPTIONS_TYPE,
   ): DynamicModule {
@@ -49,6 +66,13 @@ export class TemporalModule extends ConfigurableModuleClass {
     return superDynamicModule;
   }
 
+  /**
+   * Registers a Temporal worker asynchronously.
+   * Useful when configuration depends on other async providers (e.g., ConfigService).
+   *
+   * @param options - Async worker configuration options
+   * @returns Dynamic module configuration
+   */
   static registerWorkerAsync(
     options: typeof TEMPORAL_MODULE_ASYNC_OPTIONS_TYPE,
   ): DynamicModule {
@@ -61,6 +85,13 @@ export class TemporalModule extends ConfigurableModuleClass {
     return superDynamicModule;
   }
 
+  /**
+   * Registers a Temporal WorkflowClient synchronously.
+   * The client can be injected using @InjectTemporalClient() decorator.
+   *
+   * @param options - Client configuration options (optional)
+   * @returns Dynamic module configuration
+   */
   static registerClient(options?: TemporalModuleOptions): DynamicModule {
     const createClientProvider = createClientProviders([].concat(options));
     return {
@@ -70,6 +101,13 @@ export class TemporalModule extends ConfigurableModuleClass {
       exports: createClientProvider,
     };
   }
+  /**
+   * Registers a Temporal WorkflowClient asynchronously.
+   * Useful when configuration depends on other async providers (e.g., ConfigService).
+   *
+   * @param asyncSharedWorkflowClientOptions - Async client configuration options
+   * @returns Dynamic module configuration
+   */
   static registerClientAsync(
     asyncSharedWorkflowClientOptions: SharedWorkflowClientOptions,
   ): DynamicModule {

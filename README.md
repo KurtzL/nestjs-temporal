@@ -24,6 +24,11 @@
 
 [Temporal](https://github.com/temporalio/sdk-typescript) module for [Nest](https://github.com/nestjs/nest).
 
+## Requirements
+
+- Node.js >= 12.0.0
+- NestJS >= 8.0.0 (supports NestJS 8, 9, 10, and 11)
+
 ## Quick start
 
 ```ts

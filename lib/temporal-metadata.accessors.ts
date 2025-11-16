@@ -8,43 +8,47 @@ import {
   TEMPORAL_MODULE_WORKFLOW_METHOD,
 } from './temporal.constants';
 
+/**
+ * TemporalMetadataAccessor provides methods to check and retrieve Temporal decorator metadata.
+ * It uses NestJS Reflector to access metadata set by @Activities(), @Activity(), @Workflows(), and @WorkflowMethod() decorators.
+ */
 @Injectable()
 export class TemporalMetadataAccessor {
   constructor(private readonly reflector: Reflector) {}
 
-  isActivities(target: Type<any> | Function): boolean {
+  isActivities(target: Type<unknown> | Function | null | undefined): boolean {
     if (!target) return false;
     return !!this.reflector.get(TEMPORAL_MODULE_ACTIVITIES, target);
   }
 
-  getActivities(target: Type<any> | Function): any {
+  getActivities(target: Type<unknown> | Function): unknown {
     return this.reflector.get(TEMPORAL_MODULE_ACTIVITIES, target);
   }
 
-  isActivity(target: Type<any> | Function): boolean {
+  isActivity(target: Type<unknown> | Function | null | undefined): boolean {
     if (!target) return false;
     return !!this.reflector.get(TEMPORAL_MODULE_ACTIVITY, target);
   }
 
-  getActivity(target: Type<any> | Function): any {
+  getActivity(target: Type<unknown> | Function): unknown {
     return this.reflector.get(TEMPORAL_MODULE_ACTIVITY, target);
   }
 
-  isWorkflows(target: Type<any> | Function): boolean {
+  isWorkflows(target: Type<unknown> | Function | null | undefined): boolean {
     if (!target) return false;
     return !!this.reflector.get(TEMPORAL_MODULE_WORKFLOW, target);
   }
 
-  getWorkflows(target: Type<any> | Function): any {
+  getWorkflows(target: Type<unknown> | Function): unknown {
     return this.reflector.get(TEMPORAL_MODULE_WORKFLOW, target);
   }
 
-  isWorkflowMethod(target: Type<any> | Function): boolean {
+  isWorkflowMethod(target: Type<unknown> | Function | null | undefined): boolean {
     if (!target) return false;
     return !!this.reflector.get(TEMPORAL_MODULE_WORKFLOW_METHOD, target);
   }
 
-  getWorkflowMethod(target: Type<any> | Function): any {
+  getWorkflowMethod(target: Type<unknown> | Function): unknown {
     return this.reflector.get(TEMPORAL_MODULE_WORKFLOW_METHOD, target);
   }
 }

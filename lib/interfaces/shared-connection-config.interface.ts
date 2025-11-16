@@ -21,7 +21,7 @@ export interface SharedConnectionAsyncConfiguration
    * Factory function that returns an instance of the provider to be injected.
    */
   useFactory?: (
-    ...args: any[]
+    ...args: unknown[]
   ) => Promise<NativeConnectionOptions> | NativeConnectionOptions;
   /**
    * Instance of a provider to be injected.

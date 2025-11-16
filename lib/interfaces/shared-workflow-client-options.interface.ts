@@ -22,7 +22,7 @@ export interface SharedWorkflowClientOptions
    * Factory function that returns an instance of the provider to be injected.
    */
   useFactory?: (
-    ...args: any[]
+    ...args: unknown[]
   ) => Promise<WorkflowClientOptions> | WorkflowClientOptions;
   /**
    * Instance of a provider to be injected.

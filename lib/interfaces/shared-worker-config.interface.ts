@@ -18,9 +18,7 @@ export interface SharedWorkerAsyncConfiguration
   /**
    * Factory function that returns an instance of the provider to be injected.
    */
-  useFactory?: (
-    ...args: unknown[]
-  ) => Promise<WorkerOptions> | WorkerOptions;
+  useFactory?: (...args: unknown[]) => Promise<WorkerOptions> | WorkerOptions;
   /**
    * Instance of a provider to be injected.
    */

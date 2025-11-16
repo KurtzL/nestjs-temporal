@@ -33,7 +33,8 @@ import { TemporalMetadataAccessor } from './temporal-metadata.accessors';
 export class TemporalExplorer
   implements OnModuleInit, OnModuleDestroy, OnApplicationBootstrap
 {
-  @Inject(TEMPORAL_MODULE_OPTIONS_TOKEN) private readonly options: TemporalModuleOptions;
+  @Inject(TEMPORAL_MODULE_OPTIONS_TOKEN)
+  private readonly options: TemporalModuleOptions;
   private readonly logger = new Logger(TemporalExplorer.name);
   private worker?: Worker;
   private workerRunPromise?: Promise<void>;

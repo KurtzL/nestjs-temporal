@@ -43,7 +43,9 @@ export class TemporalMetadataAccessor {
     return this.reflector.get(TEMPORAL_MODULE_WORKFLOW, target);
   }
 
-  isWorkflowMethod(target: Type<unknown> | Function | null | undefined): boolean {
+  isWorkflowMethod(
+    target: Type<unknown> | Function | null | undefined,
+  ): boolean {
     if (!target) return false;
     return !!this.reflector.get(TEMPORAL_MODULE_WORKFLOW_METHOD, target);
   }

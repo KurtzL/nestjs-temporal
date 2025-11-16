@@ -1,20 +1,47 @@
-# source
+# Source files
 lib/
+*.ts
+!*.d.ts
 
-# config
-tsconfig.json
-tsconfig.build.json
-tsconfig.spec.json
-.prettierignore
-.prettierrc
-.eslintignore
+# Test files
+**/*.spec.ts
+**/*.test.ts
+test/
+coverage/
+
+# Development files
 .eslintrc.js
-.commitlintrc.json
+.eslintignore
+.prettierrc
+.editorconfig
 commitlint.config.js
 jest.config.js
+tsconfig.json
 
-.github/
+# Git files
+.git/
+.gitignore
 .husky/
+
+# CI/CD
+.github/
+
+# Documentation (keep README and LICENSE)
+CONTRIBUTING.md
+RELEASE_NOTES.md
+SECURITY.md
+
+# Build artifacts
+node_modules/
+dist/
+
+# IDE
+.vscode/
 .idea/
-yarn.lock
-package-lock.json
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db

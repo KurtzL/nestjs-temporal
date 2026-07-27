@@ -146,14 +146,26 @@ export class TemporalExplorer
   }
 
   /**
-   * Gets the activity classes to register with this worker.
-   * If undefined, all discovered activities will be registered.
-   * Can be either class constructors or InstanceWrappers.
+   * Resolves the activity providers to register with this worker.
+   *
+   * Activities are looked up in the DI container so that each one is the
+   * container-managed instance, with its dependencies injected. When
+   * `activityClasses` is undefined, every discovered activity is registered.
    */
-  private getActivityClasses(): (InstanceWrapper | Function)[] | undefined {
-    return this.options.activityClasses as
-      | (InstanceWrapper | Function)[]
-      | undefined;
+  private getActivityClasses(): InstanceWrapper[] {
+    const activityClasses = this.options.activityClasses;
+
+    return this.discoveryService
+      .getProviders()
+      .filter(
+        (wrapper: InstanceWrapper) =>
+          this.metadataAccessor.isActivities(
+            !wrapper.metatype || wrapper.inject
+              ? wrapper.instance?.constructor
+              : wrapper.metatype,
+          ) &&
+          (!activityClasses || activityClasses.includes(wrapper.metatype)),
+      );
   }
 
   /**
@@ -166,19 +178,14 @@ export class TemporalExplorer
     }
 
     const activityClasses = this.getActivityClasses();
-    if (!activityClasses || activityClasses.length === 0) {
+    if (activityClasses.length === 0) {
       return;
     }
 
     const activityMethods: Record<string, string[]> = {};
 
-    activityClasses.forEach((classOrWrapper: InstanceWrapper | Function) => {
-      // Handle both InstanceWrapper and class constructor
-      const wrapper = classOrWrapper as InstanceWrapper;
-      const instance =
-        'instance' in wrapper && wrapper.instance
-          ? wrapper.instance
-          : new (classOrWrapper as new () => unknown)();
+    activityClasses.forEach((wrapper: InstanceWrapper) => {
+      const { instance } = wrapper;
 
       this.metadataScanner
         .getAllMethodNames(Object.getPrototypeOf(instance))
@@ -211,27 +218,7 @@ export class TemporalExplorer
   async handleActivities(): Promise<Record<string, Function>> {
     const activitiesMethod: Record<string, Function> = {};
 
-    const activityClasses = this.getActivityClasses();
-    const activities: InstanceWrapper[] = this.discoveryService
-      .getProviders()
-      .filter(
-        (wrapper: InstanceWrapper) =>
-          this.metadataAccessor.isActivities(
-            !wrapper.metatype || wrapper.inject
-              ? wrapper.instance?.constructor
-              : wrapper.metatype,
-          ) &&
-          (!activityClasses ||
-            activityClasses.some(
-              (cls) =>
-                cls === wrapper.metatype ||
-                (cls instanceof Object &&
-                  'metatype' in cls &&
-                  (cls as InstanceWrapper).metatype === wrapper.metatype),
-            )),
-      );
-
-    activities.forEach((wrapper: InstanceWrapper) => {
+    this.getActivityClasses().forEach((wrapper: InstanceWrapper) => {
       const { instance } = wrapper;
       const isRequestScoped = !wrapper.isDependencyTreeStatic();
 

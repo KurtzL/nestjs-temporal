@@ -9,6 +9,37 @@ import {
 import { Activities, Activity } from '..';
 
 describe('TemporalExplorer', () => {
+  async function buildModule({
+    options,
+  }: {
+    options: Partial<TemporalModuleOptions>;
+  }) {
+    if (options.activityClasses) {
+      options.activityClasses = options.activityClasses.map(
+        (classOrWrapper) => {
+          return { instance: new (classOrWrapper as any)() };
+        },
+      );
+    }
+
+    return await Test.createTestingModule({
+      providers: [
+        DiscoveryService,
+        TemporalExplorer,
+        TemporalMetadataAccessor,
+        Reflector,
+        MetadataScanner,
+        {
+          provide: TEMPORAL_MODULE_OPTIONS_TOKEN,
+          useValue: {
+            workerOptions: { taskQueue: 'test-queue' },
+            ...options,
+          },
+        },
+      ],
+    }).compile();
+  }
+
   describe('findDuplicateActivityMethods', () => {
     @Activities()
     class ActivityClass1 {
@@ -30,37 +61,6 @@ describe('TemporalExplorer', () => {
     class ActivityClass3 {
       @Activity()
       distinctMethod() {}
-    }
-
-    async function buildModule({
-      options,
-    }: {
-      options: Partial<TemporalModuleOptions>;
-    }) {
-      if (options.activityClasses) {
-        options.activityClasses = options.activityClasses.map(
-          (classOrWrapper) => {
-            return { instance: new (classOrWrapper as any)() };
-          },
-        );
-      }
-
-      return await Test.createTestingModule({
-        providers: [
-          DiscoveryService,
-          TemporalExplorer,
-          TemporalMetadataAccessor,
-          Reflector,
-          MetadataScanner,
-          {
-            provide: TEMPORAL_MODULE_OPTIONS_TOKEN,
-            useValue: {
-              workerOptions: { taskQueue: 'test-queue' },
-              ...options,
-            },
-          },
-        ],
-      }).compile();
     }
 
     it('should not throw error when errorOnDuplicateActivities is false', async () => {
@@ -149,6 +149,40 @@ describe('TemporalExplorer', () => {
       expect(() => temporalExplorer.findDuplicateActivityMethods()).toThrow(
         'Activity names must be unique across all Activity classes. Identified activities with conflicting names: {"duplicate1":["MultiDuplicateClass1","MultiDuplicateClass2"],"duplicate2":["MultiDuplicateClass1","MultiDuplicateClass2"]}',
       );
+    });
+  });
+
+  describe('onModuleDestroy', () => {
+    it('waits for an existing shutdown when lifecycle hooks overlap', async () => {
+      const module = await buildModule({ options: {} });
+      const temporalExplorer = module.get(TemporalExplorer);
+      let state = 'RUNNING';
+      let resolveWorkerRun!: () => void;
+      const workerRunPromise = new Promise<void>((resolve) => {
+        resolveWorkerRun = resolve;
+      });
+      const worker = {
+        getState: jest.fn(() => state),
+        shutdown: jest.fn(() => {
+          state = 'STOPPING';
+        }),
+      };
+      Reflect.set(temporalExplorer, 'worker', worker);
+      Reflect.set(temporalExplorer, 'workerRunPromise', workerRunPromise);
+
+      const firstDestroy = temporalExplorer.onModuleDestroy();
+      const secondDestroy = temporalExplorer.onModuleDestroy();
+      let secondDestroyResolved = false;
+      void secondDestroy.then(() => {
+        secondDestroyResolved = true;
+      });
+
+      await Promise.resolve();
+      expect(worker.shutdown).toHaveBeenCalledTimes(1);
+      expect(secondDestroyResolved).toBe(false);
+
+      resolveWorkerRun();
+      await Promise.all([firstDestroy, secondDestroy]);
     });
   });
 });

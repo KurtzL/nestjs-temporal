@@ -61,7 +61,9 @@ export class TemporalExplorer
     }
 
     try {
-      this.worker.shutdown();
+      if (this.worker.getState() === 'RUNNING') {
+        this.worker.shutdown();
+      }
       if (this.workerRunPromise) {
         await this.workerRunPromise;
       }
